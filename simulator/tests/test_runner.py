@@ -15,22 +15,19 @@ Tests cover:
 from __future__ import annotations
 
 import math
-import sys
 import os
-
-import pytest
+import sys
 
 _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
+from simulator.agents.scripted import ScriptedAgent
 from simulator.constants import DEFAULT_SEED, WILSON_Z
+from simulator.distributions import baseline_params
+from simulator.generator import InvoiceGenerator
 from simulator.models import SimulationPhase, SimulationRunConfig
 from simulator.runner import SimulationRunner, wilson_lower_bound
-from simulator.generator import InvoiceGenerator
-from simulator.distributions import baseline_params, shifted_params
-from simulator.agents.scripted import ScriptedAgent
-
 
 # ---------------------------------------------------------------------------
 # wilson_lower_bound() unit tests
@@ -87,7 +84,7 @@ class TestWilsonLowerBound:
     def test_wlb_always_leq_one(self):
         for correct, total in [(10, 10), (100, 100), (50, 50)]:
             wlb = wilson_lower_bound(correct, total)
-            assert wlb <= 1.0, f"WLB must be ≤ 1.0, got {wlb}"
+            assert wlb <= 1.0, f"WLB must be <= 1.0, got {wlb}"
 
     def test_wlb_monotone_in_sample_size(self):
         """For fixed accuracy ratio, larger sample → higher WLB (tighter bound)."""
@@ -200,7 +197,7 @@ class TestRunnerAccuracy:
         config = _make_config()
         result = SimulationRunner(config=config, agent=agent, api_client=None).run(invoices)
         assert result.wilson_lower_bound <= result.accuracy, (
-            f"WLB ({result.wilson_lower_bound:.4f}) must be ≤ accuracy ({result.accuracy:.4f})"
+            f"WLB ({result.wilson_lower_bound:.4f}) must be <= accuracy ({result.accuracy:.4f})"
         )
 
     def test_completed_at_is_set(self):

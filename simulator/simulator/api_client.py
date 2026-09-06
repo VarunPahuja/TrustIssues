@@ -21,8 +21,8 @@ from __future__ import annotations
 import os
 import sys
 import time
-from typing import Optional
 from decimal import Decimal
+from typing import Self
 
 _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if _repo_root not in sys.path:
@@ -31,7 +31,7 @@ if _repo_root not in sys.path:
 import httpx
 
 from simulator.constants import DEFAULT_API_BASE_URL, DEFAULT_API_VERSION
-from simulator.models import Invoice, AgentOutcome
+from simulator.models import AgentOutcome, Invoice
 
 
 class APIClient:
@@ -48,7 +48,7 @@ class APIClient:
     def __init__(
         self,
         base_url: str = DEFAULT_API_BASE_URL,
-        jwt_token: Optional[str] = None,
+        jwt_token: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 3,
     ) -> None:
@@ -115,13 +115,13 @@ class APIClient:
         try:
             resp = self._client.get("/health", timeout=5.0)
             return resp.status_code < 500
-        except Exception:
+        except Exception:  # noqa: BLE001 - unreachable backend of any kind means unhealthy
             return False
 
     def close(self) -> None:
         self._client.close()
 
-    def __enter__(self) -> "APIClient":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *_) -> None:
@@ -138,7 +138,7 @@ class APIClient:
         return self._request("POST", path, json=body)
 
     def _request(self, method: str, path: str, **kwargs) -> dict:
-        last_exc: Optional[Exception] = None
+        last_exc: Exception | None = None
         for attempt in range(1, self._max_retries + 1):
             try:
                 resp = self._client.request(method, path, **kwargs)
@@ -154,7 +154,7 @@ class APIClient:
                     f"API error {exc.response.status_code} on {method} {path}: "
                     f"{exc.response.text}"
                 ) from exc
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - any transport error is worth a retry
                 last_exc = exc
                 if attempt < self._max_retries:
                     time.sleep(2 ** attempt)

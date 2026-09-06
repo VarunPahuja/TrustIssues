@@ -31,24 +31,21 @@ NOTE ON THRESHOLDS:
 
 from __future__ import annotations
 
-import sys
 import os
-import math
-
-import pytest
+import sys
 
 _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
-from simulator.constants import DEFAULT_SEED, WILSON_Z, PHASE_ERROR_RATES
 from shared.enums import Action as AgentDecision
-from simulator.models import SimulationPhase, SimulationRunConfig
-from simulator.generator import InvoiceGenerator
-from simulator.distributions import baseline_params, shifted_params, recovery_params
-from simulator.agents.scripted import ScriptedAgent
-from simulator.runner import SimulationRunner, wilson_lower_bound
 
+from simulator.agents.scripted import ScriptedAgent
+from simulator.constants import DEFAULT_SEED, PHASE_ERROR_RATES
+from simulator.distributions import baseline_params, shifted_params
+from simulator.generator import InvoiceGenerator
+from simulator.models import SimulationPhase, SimulationRunConfig
+from simulator.runner import SimulationRunner
 
 # ---------------------------------------------------------------------------
 # Helper
@@ -173,8 +170,8 @@ class TestErrorRateValidation:
         error_rate = summary["error_rate"]
         assert error_rate is not None
         assert error_rate > 0.0, (
-            f"Baseline error rate is exactly 0% — distribution is trivially easy. "
-            f"Increase difficulty or boundary fraction."
+            "Baseline error rate is exactly 0% — distribution is trivially easy. "
+            "Increase difficulty or boundary fraction."
         )
 
     def test_degraded_error_rate_higher_than_baseline(self):

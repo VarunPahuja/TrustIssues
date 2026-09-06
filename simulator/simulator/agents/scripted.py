@@ -24,9 +24,9 @@ IMPORTANT:
 
 from __future__ import annotations
 
+import os
 import random
 import sys
-import os
 from decimal import Decimal
 
 _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
@@ -35,9 +35,10 @@ if _repo_root not in sys.path:
 
 from shared.constants import AUTONOMY_FLOOR, AUTONOMY_LADDER
 from shared.enums import Action
+
 from simulator import reason_codes as RC
 from simulator.constants import DEFAULT_SEED
-from simulator.models import AgentOutcome, Invoice
+from simulator.models import AgentOutcome, Invoice, InvoiceCategory
 
 
 class ScriptedAgent:
@@ -116,7 +117,7 @@ class ScriptedAgent:
             return Action.REJECT, RC.REJECT_NEGATIVE_AMOUNT
 
         try:
-            invoice.category
+            InvoiceCategory(invoice.category)
         except ValueError:
             return Action.REJECT, RC.REJECT_INVALID_CATEGORY
 

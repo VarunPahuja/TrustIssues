@@ -18,12 +18,11 @@ KEY DESIGN DECISIONS:
 from __future__ import annotations
 
 import math
+import os
 import random
 import sys
-import os
 from datetime import date, timedelta
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Optional
+from decimal import ROUND_HALF_UP, Decimal
 from uuid import UUID
 
 # Allow shared/ to be imported without installing
@@ -38,10 +37,9 @@ from simulator.constants import (
     DEFAULT_SEED,
     REQUIRED_INVOICE_FIELDS,
 )
-from simulator.models import Invoice, InvoiceCategory, SimulationPhase
 from simulator.distributions import DistributionParams
 from simulator.labeller import GroundTruthLabeller
-
+from simulator.models import Invoice, InvoiceCategory, SimulationPhase
 
 # ---------------------------------------------------------------------------
 # Vendor name pools
@@ -138,7 +136,7 @@ class InvoiceGenerator:
     def __init__(
         self,
         seed: int = DEFAULT_SEED,
-        params: Optional[DistributionParams] = None,
+        params: DistributionParams | None = None,
         phase: SimulationPhase = SimulationPhase.GOOD,
     ) -> None:
         from simulator.distributions import baseline_params
@@ -169,16 +167,16 @@ class InvoiceGenerator:
 
         category = self._pick_category()
         amount_inr = self._pick_amount(category)
-        vendor, is_ambiguous, is_blocked = self._pick_vendor()
+        vendor, is_ambiguous, _is_blocked = self._pick_vendor()
         invoice_date = self._pick_date()
 
         # Determine which required fields to drop (degraded phase hardness)
-        missing, present = self._apply_missing_fields()
+        missing, _present = self._apply_missing_fields()
 
         submitted_by = self.rng.choice(EMPLOYEES)
         department = self.rng.choice(DEPARTMENTS) if "department" not in missing else None
         cost_centre = self.rng.choice(COST_CENTRES) if "cost_centre" not in missing else None
-        po_number: Optional[str] = None
+        po_number: str | None = None
         if self.rng.random() < 0.6 and "purchase_order" not in missing:
             prefix = self.rng.choice(PO_PREFIXES)
             po_number = f"{prefix}-{self.rng.randint(10000, 99999)}"
@@ -189,26 +187,26 @@ class InvoiceGenerator:
 
         # Build a partial invoice dict for the labeller
         # (some fields intentionally absent to match missing_field_names)
-        invoice_kwargs: dict = dict(
-            submitted_by=submitted_by if "submitted_by" not in missing else "MISSING",
-            vendor_name=vendor if "vendor_name" not in missing else "MISSING",
-            invoice_date=invoice_date if "invoice_date" not in missing else date(1900, 1, 1),
-            category=category,
-            amount=self._format_amount(amount_inr),
-            description=description,
-            department=department,
-            cost_centre=cost_centre,
-            purchase_order=po_number,
-            phase=self.phase,
-            is_boundary_case=is_boundary,
-            is_ambiguous_vendor=is_ambiguous,
-            has_missing_fields=bool(missing),
-            missing_field_names=sorted(missing),
+        invoice_kwargs: dict = {
+            "submitted_by": submitted_by if "submitted_by" not in missing else "MISSING",
+            "vendor_name": vendor if "vendor_name" not in missing else "MISSING",
+            "invoice_date": invoice_date if "invoice_date" not in missing else date(1900, 1, 1),
+            "category": category,
+            "amount": self._format_amount(amount_inr),
+            "description": description,
+            "department": department,
+            "cost_centre": cost_centre,
+            "purchase_order": po_number,
+            "phase": self.phase,
+            "is_boundary_case": is_boundary,
+            "is_ambiguous_vendor": is_ambiguous,
+            "has_missing_fields": bool(missing),
+            "missing_field_names": sorted(missing),
             # Ground truth will be filled below
-            ground_truth_decision=None,  # type: ignore[arg-type]
-            ground_truth_reason="",
-            ground_truth_confidence=1.0,
-        )
+            "ground_truth_decision": None,
+            "ground_truth_reason": "",
+            "ground_truth_confidence": 1.0,
+        }
 
         # Temporarily create a bare invoice to pass to labeller
         # We'll set the GT fields right after

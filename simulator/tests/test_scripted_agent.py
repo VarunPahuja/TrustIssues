@@ -15,8 +15,8 @@ Tests cover:
 
 from __future__ import annotations
 
-import sys
 import os
+import sys
 
 import pytest
 
@@ -25,13 +25,13 @@ if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
     
 from shared.enums import Action
-from simulator.constants import DEFAULT_SEED
-from simulator.models import AgentOutcome, SimulationPhase
-from simulator.generator import InvoiceGenerator
-from simulator.distributions import baseline_params
-from simulator.agents.scripted import ScriptedAgent
-from simulator.agents.base import AgentProtocol
 
+from simulator.agents.base import AgentProtocol
+from simulator.agents.scripted import ScriptedAgent
+from simulator.constants import DEFAULT_SEED
+from simulator.distributions import baseline_params
+from simulator.generator import InvoiceGenerator
+from simulator.models import AgentOutcome, SimulationPhase
 
 # ---------------------------------------------------------------------------
 # Fixtures
