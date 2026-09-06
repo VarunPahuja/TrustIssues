@@ -190,6 +190,28 @@ def run(
 
 
 # ---------------------------------------------------------------------------
+# arc — the ten-beat demo
+# ---------------------------------------------------------------------------
+
+@app.command()
+def arc(
+    agent_id: str = typer.Option("agent-01", "--agent-id", help="Agent id to run the arc as"),
+    seed: int = typer.Option(DEFAULT_SEED, help="Random seed — same seed reproduces the arc exactly"),
+    count: int = typer.Option(200, help="Invoices per phase"),
+    auto_approve: bool = typer.Option(
+        True, "--auto-approve/--wait-for-human",
+        help="Auto-approve increases (unattended demo) or pause for a human to approve.",
+    ),
+) -> None:
+    """Run the full ten-beat demo arc: climb, collapse, clawback, recover."""
+    from simulator.arc import ArcRunner
+
+    ArcRunner(
+        agent_id=agent_id, seed=seed, count=count, auto_approve=auto_approve
+    ).run()
+
+
+# ---------------------------------------------------------------------------
 # validate
 # ---------------------------------------------------------------------------
 
