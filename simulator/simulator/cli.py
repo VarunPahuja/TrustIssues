@@ -44,7 +44,7 @@ from rich.table import Table
 from rich import print as rprint
 
 from shared.constants import AUTONOMY_FLOOR
-from simulator.constants import DEFAULT_API_BASE_URL, DEFAULT_SEED
+from simulator.constants import DEFAULT_API_BASE_URL, DEFAULT_SEED, PHASE_ERROR_RATES
 from simulator.models import Invoice, SimulationPhase, SimulationRunConfig
 from simulator.distributions import get_params
 from simulator.generator import InvoiceGenerator
@@ -128,15 +128,28 @@ def run(
              "and escalates above it. Set this to the agent's real backend limit so "
              "escalation volume drops as the agent earns higher rungs.",
     ),
+    error_rate: Optional[float] = typer.Option(
+        None, "--error-rate",
+        help="Fraction of decisions the agent gets deliberately wrong (0.0-1.0). "
+             "Defaults to the phase's rate from PHASE_ERROR_RATES: "
+             "good=0.05, degraded=0.30, recovery=0.10.",
+    ),
     api_url: str = typer.Option(DEFAULT_API_BASE_URL, help="Backend API base URL"),
     submit: bool = typer.Option(False, "--submit/--no-submit", help="Submit invoices to backend API"),
     fixture: Optional[Path] = typer.Option(None, help="Load invoices from fixture file instead of generating"),
 ) -> None:
     """Run an agent over invoices and report accuracy metrics."""
 
+    # A phase's error rate is the default; --error-rate overrides it explicitly.
+    if error_rate is None:
+        error_rate = PHASE_ERROR_RATES.get(phase.value, 0.05)
+
     # Build agent
-    agent = _build_agent(agent_type, agent_id, limit)
-    console.print(f"[bold]Agent:[/] {agent.name}")
+    agent = _build_agent(agent_type, agent_id, limit, error_rate)
+    console.print(
+        f"[bold]Agent:[/] {agent.name}  "
+        f"[dim](limit=INR {limit}, error_rate={error_rate:.0%})[/]"
+    )
 
     # Load or generate invoices
     if fixture and fixture.exists():
@@ -287,10 +300,13 @@ def smoke_test(
 # ---------------------------------------------------------------------------
 
 def _build_agent(agent_type: str, agent_id: str = "scripted-agent-001",
-                 current_limit: int = AUTONOMY_FLOOR):
+                 current_limit: int = AUTONOMY_FLOOR,
+                 error_rate: float = 0.05):
     if agent_type == "scripted":
         from simulator.agents.scripted import ScriptedAgent
-        return ScriptedAgent(agent_id=agent_id, current_limit=current_limit)
+        return ScriptedAgent(
+            agent_id=agent_id, current_limit=current_limit, error_rate=error_rate
+        )
     else:
         console.print(f"[red]Unknown agent type: {agent_type!r}. Choose 'scripted'.[/]")
         raise typer.Exit(1)
