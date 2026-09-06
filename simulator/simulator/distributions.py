@@ -22,8 +22,8 @@ DEGRADED PHASE — THE MOST IMPORTANT:
 
 from __future__ import annotations
 
-import sys
 import os
+import sys
 
 # ---------------------------------------------------------------------------
 # Allow the shared/ package to be imported without installing it as a package.

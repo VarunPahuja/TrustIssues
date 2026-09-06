@@ -50,16 +50,16 @@ if _trust_root not in sys.path:
     sys.path.insert(0, _trust_root)
 
 from rich.console import Console
-
 from shared.constants import AUTONOMY_FLOOR
 from shared.contracts import AgentContext, DecisionRecord
 from shared.enums import AgentState
+from trust.trust_engine.evaluate import evaluate
+
 from simulator.agents.scripted import ScriptedAgent
 from simulator.constants import DEFAULT_SEED, PHASE_ERROR_RATES
 from simulator.distributions import get_params
 from simulator.generator import InvoiceGenerator
 from simulator.models import Invoice, SimulationPhase
-from trust.trust_engine.evaluate import evaluate
 
 console = Console()
 

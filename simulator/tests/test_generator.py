@@ -18,8 +18,8 @@ Tests cover:
 
 from __future__ import annotations
 
-import sys
 import os
+import sys
 from decimal import Decimal, InvalidOperation
 
 import pytest
@@ -29,12 +29,12 @@ _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
-from simulator.constants import AMOUNT_MIN_INR, AMOUNT_MAX_INR, DEFAULT_SEED
 from shared.enums import Action
-from simulator.models import SimulationPhase
-from simulator.distributions import baseline_params, shifted_params, recovery_params
-from simulator.generator import InvoiceGenerator
 
+from simulator.constants import AMOUNT_MAX_INR, AMOUNT_MIN_INR, DEFAULT_SEED
+from simulator.distributions import baseline_params, recovery_params, shifted_params
+from simulator.generator import InvoiceGenerator
+from simulator.models import SimulationPhase
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -103,16 +103,26 @@ class TestReproducibility:
         # Extremely unlikely to produce the same amounts with different seeds
         assert amounts_a != amounts_b
 
-    def test_invoice_ids_are_uuid4_not_seeded(self):
+    def test_invoice_ids_are_seeded_and_unique(self):
         """
-        Invoice IDs are uuid4 — intentionally NOT seeded.
-        Each run produces fresh IDs to avoid collisions across runs.
-        Verify uniqueness within a single batch.
+        Invoice IDs are UUID4-shaped but drawn from the seeded stream, so the
+        same seed reproduces the same IDs and committed fixtures diff cleanly.
+        They must still be unique within a batch.
         """
-        gen = InvoiceGenerator(seed=42, params=baseline_params())
-        invoices = gen.generate(50)
-        ids = [inv.invoice_id for inv in invoices]
-        assert len(ids) == len(set(ids)), "Invoice IDs must be unique within a batch"
+        ids_a = [inv.invoice_id for inv in
+                 InvoiceGenerator(seed=42, params=baseline_params()).generate(50)]
+        ids_b = [inv.invoice_id for inv in
+                 InvoiceGenerator(seed=42, params=baseline_params()).generate(50)]
+        assert len(ids_a) == len(set(ids_a)), "Invoice IDs must be unique within a batch"
+        assert ids_a == ids_b, "Same seed must reproduce the same invoice IDs"
+
+    def test_invoice_ids_differ_across_seeds(self):
+        """A different seed must produce different IDs."""
+        ids_a = [inv.invoice_id for inv in
+                 InvoiceGenerator(seed=42, params=baseline_params()).generate(50)]
+        ids_b = [inv.invoice_id for inv in
+                 InvoiceGenerator(seed=43, params=baseline_params()).generate(50)]
+        assert ids_a != ids_b
 
 
 # ---------------------------------------------------------------------------
@@ -191,7 +201,7 @@ class TestAmounts:
         """Amount string must parse to a Decimal with 2dp."""
         for inv in baseline_invoices:
             try:
-                d = Decimal(inv.amount)
+                Decimal(inv.amount)
             except InvalidOperation:
                 pytest.fail(f"Amount {inv.amount!r} is not a valid decimal")
             # Check exactly 2 decimal places

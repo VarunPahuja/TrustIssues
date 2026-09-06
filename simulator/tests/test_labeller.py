@@ -12,10 +12,9 @@ Tests verify:
 
 from __future__ import annotations
 
-import sys
 import os
+import sys
 from datetime import date, timedelta
-from decimal import Decimal
 
 import pytest
 
@@ -24,10 +23,10 @@ if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
 from shared.enums import Action as AgentDecision
-from simulator.models import InvoiceCategory, SimulationPhase
+
 from simulator import reason_codes as RC
 from simulator.labeller import GroundTruthLabeller
-
+from simulator.models import InvoiceCategory
 
 # ---------------------------------------------------------------------------
 # Helper: build a minimal valid invoice-like object for the labeller
@@ -42,9 +41,9 @@ class FakeInvoice:
         amount: str = "1000.00",
         category: str = "supplies",
         vendor_name: str = "Amazon Business",
-        invoice_date: date = None,
+        invoice_date: date | None = None,
         submitted_by: str = "EMP1001",
-        missing_field_names: list = None,
+        missing_field_names: list | None = None,
         is_ambiguous_vendor: bool = False,
         has_missing_fields: bool = False,
     ):
@@ -77,7 +76,7 @@ class TestRule1MissingFields:
 
     def test_missing_submitted_by_escalates(self, labeller):
         inv = FakeInvoice(missing_field_names=["submitted_by"], has_missing_fields=True)
-        decision, reason, _ = labeller.label(inv)
+        decision, _reason, _ = labeller.label(inv)
         assert decision == AgentDecision.REJECT
 
     def test_multiple_missing_fields_escalates(self, labeller):
@@ -207,7 +206,7 @@ class TestRule7ExceedsTierLimit:
     def test_just_above_limit_escalates(self, labeller):
         # LOW limit for travel = 3,000; 3,001 just over
         inv = FakeInvoice(amount="3001.00", category="travel")
-        decision, reason, _ = labeller.label(inv)
+        decision, _reason, _ = labeller.label(inv)
         assert decision == AgentDecision.APPROVE
 
 
@@ -266,7 +265,7 @@ class TestRule9AmbiguousVendor:
 class TestRule10Approve:
     def test_clean_small_invoice_approved(self, labeller):
         inv = FakeInvoice(amount="500.00", category="supplies", vendor_name="Amazon Business")
-        decision, reason, confidence = labeller.label(inv)
+        decision, _reason, confidence = labeller.label(inv)
         assert decision == AgentDecision.APPROVE
         assert confidence == 1.0
 
