@@ -126,12 +126,19 @@ class ScriptedAgent:
     def _flip_decision(
         self, correct: Action, invoice: Invoice
     ) -> tuple[Action, str]:
-        """Return a plausible wrong decision."""
+        """Return a genuinely wrong ACTION — never a deferral.
+
+        An injected error means the agent acted incorrectly, so it must show
+        up as a wrong acted decision (lower accuracy), not as an escalation
+        (which the trust engine excludes from accuracy entirely).
+        """
         if correct == Action.APPROVE:
-            # Wrongly escalate (most common mistake)
-            return Action.ESCALATE, RC.ESCALATE_BOUNDARY_AMOUNT
-        if correct == Action.ESCALATE:
-            # Wrongly approve (miss the escalation trigger)
-            return Action.APPROVE, RC.APPROVE_WITHIN_LIMIT
-        # correct == REJECT → wrongly escalate instead
-        return Action.ESCALATE, RC.ESCALATE_POLICY_CONFLICT
+            # Wrongly reject a legitimate invoice — a non-critical error.
+            return Action.REJECT, RC.REJECT_SCRIPTED_ERROR
+        if correct == Action.REJECT:
+            # Wrongly approve a bad invoice — a CRITICAL error (money leaves).
+            return Action.APPROVE, RC.APPROVE_SCRIPTED_ERROR
+        # correct == Action.ESCALATE: guess instead of deferring — wrong either way.
+        if self._rng.random() < 0.5:
+            return Action.APPROVE, RC.APPROVE_SCRIPTED_ERROR
+        return Action.REJECT, RC.REJECT_SCRIPTED_ERROR
