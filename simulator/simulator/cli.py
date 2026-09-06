@@ -43,6 +43,7 @@ from rich.console import Console
 from rich.table import Table
 from rich import print as rprint
 
+from shared.constants import AUTONOMY_FLOOR
 from simulator.constants import DEFAULT_API_BASE_URL, DEFAULT_SEED
 from simulator.models import Invoice, SimulationPhase, SimulationRunConfig
 from simulator.distributions import get_params
@@ -116,6 +117,17 @@ def run(
     agent_type: str = typer.Option("scripted", "--agent", help="Agent type: scripted"),
     count: int = typer.Option(100, help="Number of invoices to process"),
     seed: int = typer.Option(DEFAULT_SEED, help="Random seed"),
+    agent_id: str = typer.Option(
+        "scripted-agent-001", "--agent-id",
+        help="Agent id to run as / submit decisions for. Must be a real agent on "
+             "the backend when --submit is used (e.g. agent-01).",
+    ),
+    limit: int = typer.Option(
+        AUTONOMY_FLOOR, "--limit",
+        help="The agent's current autonomy limit (rupees). It approves within this "
+             "and escalates above it. Set this to the agent's real backend limit so "
+             "escalation volume drops as the agent earns higher rungs.",
+    ),
     api_url: str = typer.Option(DEFAULT_API_BASE_URL, help="Backend API base URL"),
     submit: bool = typer.Option(False, "--submit/--no-submit", help="Submit invoices to backend API"),
     fixture: Optional[Path] = typer.Option(None, help="Load invoices from fixture file instead of generating"),
@@ -123,7 +135,7 @@ def run(
     """Run an agent over invoices and report accuracy metrics."""
 
     # Build agent
-    agent = _build_agent(agent_type)
+    agent = _build_agent(agent_type, agent_id, limit)
     console.print(f"[bold]Agent:[/] {agent.name}")
 
     # Load or generate invoices
@@ -143,7 +155,7 @@ def run(
         invoice_count=len(invoices),
         seed=seed,
         agent_type=agent_type,
-        agent_id=agent.agent_id,
+        agent_id=agent_id,
         api_base_url=api_url,
     )
 
@@ -274,10 +286,11 @@ def smoke_test(
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _build_agent(agent_type: str):
+def _build_agent(agent_type: str, agent_id: str = "scripted-agent-001",
+                 current_limit: int = AUTONOMY_FLOOR):
     if agent_type == "scripted":
         from simulator.agents.scripted import ScriptedAgent
-        return ScriptedAgent()
+        return ScriptedAgent(agent_id=agent_id, current_limit=current_limit)
     else:
         console.print(f"[red]Unknown agent type: {agent_type!r}. Choose 'scripted'.[/]")
         raise typer.Exit(1)
