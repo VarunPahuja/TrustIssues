@@ -24,6 +24,7 @@ import os
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
+from uuid import UUID
 
 # Allow shared/ to be imported without installing
 _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -142,6 +143,10 @@ class InvoiceGenerator:
     ) -> None:
         from simulator.distributions import baseline_params
         self.rng = random.Random(seed)
+        # Invoice IDs draw from their own seeded stream. Keeping them off self.rng
+        # means adding IDs does not shift the content stream, so fixture contents
+        # stay byte-identical while the IDs themselves become reproducible.
+        self._id_rng = random.Random(seed ^ 0x1D_C0FFEE)
         self.params = params or baseline_params()
         self.phase = phase
         self.labeller = GroundTruthLabeller()
@@ -198,7 +203,7 @@ class InvoiceGenerator:
             is_boundary_case=is_boundary,
             is_ambiguous_vendor=is_ambiguous,
             has_missing_fields=bool(missing),
-            missing_field_names=list(missing),
+            missing_field_names=sorted(missing),
             # Ground truth will be filled below
             ground_truth_decision=None,  # type: ignore[arg-type]
             ground_truth_reason="",
@@ -216,6 +221,7 @@ class InvoiceGenerator:
 
         # Now do a full validation pass
         return Invoice(
+            invoice_id=self._next_invoice_id(),
             submitted_by=invoice_kwargs["submitted_by"],
             vendor_name=vendor,           # Always store real vendor name in GT
             invoice_date=invoice_date,    # Always store real date
@@ -229,11 +235,15 @@ class InvoiceGenerator:
             is_boundary_case=is_boundary,
             is_ambiguous_vendor=is_ambiguous,
             has_missing_fields=bool(missing),
-            missing_field_names=list(missing),
+            missing_field_names=sorted(missing),
             ground_truth_decision=gt_decision,
             ground_truth_reason=gt_reason,
             ground_truth_confidence=gt_confidence,
         )
+
+    def _next_invoice_id(self) -> str:
+        """A UUID4-shaped id drawn from the seeded stream, so fixtures reproduce."""
+        return str(UUID(int=self._id_rng.getrandbits(128), version=4))
 
     def _pick_category(self) -> InvoiceCategory:
         weights = self.params.category_weights

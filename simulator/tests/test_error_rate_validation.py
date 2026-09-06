@@ -213,7 +213,7 @@ class TestErrorRateValidation:
         )
         # Recovery should trend better than degraded (easing back)
         # This is a soft check — not a hard requirement
-        print(f"\nPhase error rates → baseline: {b_err:.1%}, recovery: {r_err:.1%}, degraded: {d_err:.1%}")
+        print(f"\nPhase error rates -> baseline: {b_err:.1%}, recovery: {r_err:.1%}, degraded: {d_err:.1%}")
 
     def test_baseline_wlb_computable(self):
         """Wilson LB must be computable from a 200-invoice baseline run."""

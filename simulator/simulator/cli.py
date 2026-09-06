@@ -44,6 +44,7 @@ from rich.table import Table
 from rich import print as rprint
 
 from shared.constants import AUTONOMY_FLOOR
+from shared.enums import Action
 from simulator.constants import DEFAULT_API_BASE_URL, DEFAULT_SEED, PHASE_ERROR_RATES
 from simulator.models import Invoice, SimulationPhase, SimulationRunConfig
 from simulator.distributions import get_params
@@ -82,10 +83,12 @@ def generate(
     gen = InvoiceGenerator(seed=seed, params=params, phase=phase)
     invoices = gen.generate(count)
 
-    # Count decision distribution
-    decisions: dict[str, int] = {"approve": 0, "reject": 0, "escalate": 0}
+    # Count decision distribution. Ground truth is APPROVE or REJECT only (CR-1),
+    # and Action's values are upper-case, so key the counter off the enum itself.
+    decisions: dict[str, int] = {Action.APPROVE.value: 0, Action.REJECT.value: 0}
     for inv in invoices:
-        decisions[inv.ground_truth_decision.value] += 1
+        if inv.ground_truth_decision is not None:
+            decisions[inv.ground_truth_decision.value] += 1
 
     # Write fixture
     data = [inv.model_dump(mode="json") for inv in invoices]
@@ -95,10 +98,10 @@ def generate(
         encoding="utf-8",
     )
 
-    console.print(f"[bold]✓[/] Written to [underline]{out_file}[/]")
+    console.print(f"[bold][OK][/] Written to [underline]{out_file}[/]")
 
     # Summary table
-    t = Table(title=f"Ground Truth Distribution — {phase.value}")
+    t = Table(title=f"Ground Truth Distribution - {phase.value}")
     t.add_column("Decision", style="cyan")
     t.add_column("Count", justify="right")
     t.add_column("Pct", justify="right")
@@ -235,12 +238,12 @@ def validate(
             errors.append(f"Invoice {i}: {exc}")
 
     if errors:
-        console.print(f"[red]Validation FAILED — {len(errors)} errors:[/]")
+        console.print(f"[red]Validation FAILED - {len(errors)} errors:[/]")
         for e in errors[:10]:
-            console.print(f"  • {e}")
+            console.print(f"  - {e}")
         raise typer.Exit(1)
 
-    console.print(f"[bold green]✓ Valid[/] — {len(invoices_data)} invoices all pass schema validation")
+    console.print(f"[bold green][OK] Valid[/] - {len(invoices_data)} invoices all pass schema validation")
 
 
 # ---------------------------------------------------------------------------
@@ -308,13 +311,13 @@ def smoke_test(
 
     good_acc = results["good"].accuracy or 0
     if good_acc > 0.95:
-        console.print("\n[yellow]⚠ Good-phase accuracy is too high (>95 %). "
+        console.print("\n[yellow][WARN] Good-phase accuracy is too high (>95 %). "
                       "Increase degraded knobs or reduce good-phase amount margins.[/]")
     elif good_acc < 0.80:
-        console.print("\n[yellow]⚠ Good-phase accuracy is too low (<80 %). "
+        console.print("\n[yellow][WARN] Good-phase accuracy is too low (<80 %). "
                       "Simplify good-phase invoices.[/]")
     else:
-        console.print("\n[bold green]✓ Error rates look good for a convincing demo.[/]")
+        console.print("\n[bold green][OK] Error rates look good for a convincing demo.[/]")
 
 
 # ---------------------------------------------------------------------------
@@ -335,7 +338,7 @@ def _build_agent(agent_type: str, agent_id: str = "scripted-agent-001",
 
 
 def _print_result(result) -> None:
-    t = Table(title=f"Simulation Result — {result.config.phase.value}")
+    t = Table(title=f"Simulation Result - {result.config.phase.value}")
     t.add_column("Metric", style="cyan")
     t.add_column("Value", justify="right")
     t.add_row("Total invoices", str(result.total_invoices))
@@ -343,8 +346,8 @@ def _print_result(result) -> None:
     t.add_row("Rejected",       str(result.rejected_count))
     t.add_row("Escalated",      str(result.escalated_count))
     t.add_row("Correct decisions", str(result.correct_decisions))
-    t.add_row("Accuracy",          f"{result.accuracy:.1%}" if result.accuracy else "—")
-    t.add_row("Wilson LB (95%)",   f"{result.wilson_lower_bound:.1%}" if result.wilson_lower_bound else "—")
+    t.add_row("Accuracy",          f"{result.accuracy:.1%}" if result.accuracy else "-")
+    t.add_row("Wilson LB (95%)",   f"{result.wilson_lower_bound:.1%}" if result.wilson_lower_bound else "-")
     t.add_row("LLM calls",         str(result.llm_calls))
     t.add_row("Cache hits",        str(result.cache_hits))
     t.add_row("Errors",            str(len(result.errors)))
@@ -353,7 +356,7 @@ def _print_result(result) -> None:
     if result.errors:
         console.print("[red]Errors:[/]")
         for e in result.errors[:5]:
-            console.print(f"  • {e}")
+            console.print(f"  - {e}")
 
 
 if __name__ == "__main__":
