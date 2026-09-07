@@ -22,6 +22,7 @@ from app.models.decisions import Decision
 from app.models.invoices import Invoice
 from app.models.policy_versions import PolicyVersion, apply_policy_version
 from app.models.recommendations import Recommendation
+from app.models.simulation_runs import SimulationRun
 from app.models.trust_evaluations import TrustEvaluation
 from app.models.users import User
 
@@ -35,6 +36,7 @@ __all__ = [
     "Invoice",
     "PolicyVersion",
     "Recommendation",
+    "SimulationRun",
     "TrustEvaluation",
     "User",
     "apply_policy_version",
