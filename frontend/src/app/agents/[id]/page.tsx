@@ -89,12 +89,12 @@ export default function AgentDetailPage() {
     queryFn: () => agentsApi.get(id),
   });
 
-  const { data: policyVersionsData } = useQuery({
+  const { data: policyVersionsData, isError: policyVersionsError } = useQuery({
     queryKey: ["agent-policy-versions", id],
     queryFn: () => agentsApi.getPolicyVersions(id),
   });
 
-  const { data: trustEval } = useQuery({
+  const { data: trustEval, isError: trustEvalError } = useQuery({
     queryKey: ["agent-trust", id],
     queryFn: () => agentsApi.getTrust(id),
     // Don't poll — each call computes and persists a new evaluation
@@ -102,12 +102,12 @@ export default function AgentDetailPage() {
     staleTime: 60_000,
   });
 
-  const { data: trustHistoryData } = useQuery({
+  const { data: trustHistoryData, isError: trustHistoryError } = useQuery({
     queryKey: ["agent-trust-history", id],
     queryFn: () => agentsApi.getTrustHistory(id),
   });
 
-  const { data: decisionsData } = useQuery({
+  const { data: decisionsData, isError: decisionsError } = useQuery({
     queryKey: ["agent-decisions", id],
     queryFn: () => decisionsApi.list(),
   });
@@ -128,6 +128,19 @@ export default function AgentDetailPage() {
             {agentError ? "FAILED TO LOAD AGENT" : "GOVERNANCE RECORD NOT FOUND."}
           </span>
           <p className="text-xs text-slate-500 mt-1">Check that the backend is running and the agent ID is valid.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (policyVersionsError || trustEvalError || trustHistoryError || decisionsError) {
+    return (
+      <div className="editorial-content">
+        <div className="editorial-panel p-6 border-l-4 border-red-400">
+          <span className="text-xs font-bold text-red-700 uppercase tracking-widest block">
+            FAILED TO LOAD COMPLETE AGENT DATA
+          </span>
+          <p className="text-xs text-slate-500 mt-1">Check that the backend is running and try again.</p>
         </div>
       </div>
     );

@@ -14,9 +14,13 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { simulationApi } from "@/lib/api-client";
+import { agentsApi, simulationApi } from "@/lib/api-client";
 import { IconSimulation } from "@/components/ui/Icons";
-import type { SimulationPhase, SimulationRunOut } from "@/types/api";
+import type { AgentOut, SimulationPhase, SimulationRunOut } from "@/types/api";
+
+function fmtLimit(value: number): string {
+  return `₹${value.toLocaleString("en-IN")}`;
+}
 
 export default function SimulationPage() {
   const qc = useQueryClient();
@@ -27,12 +31,23 @@ export default function SimulationPage() {
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
 
   // Poll active run status
-  const { data: activeRun } = useQuery<SimulationRunOut>({
+  const { data: activeRun, isError: activeRunError } = useQuery<SimulationRunOut>({
     queryKey: ["simulation-run", activeRunId],
     queryFn: () => simulationApi.getRun(activeRunId!),
     enabled: activeRunId != null,
     refetchInterval: 2_000,
   });
+
+  const {
+    data: agentsData,
+    isLoading: agentsLoading,
+    isError: agentsError,
+  } = useQuery({
+    queryKey: ["agents"],
+    queryFn: () => agentsApi.list(),
+  });
+
+  const agents = agentsData?.items ?? [];
 
   const { mutate: startRun, isPending, error: startError } = useMutation({
     mutationFn: () =>
@@ -82,10 +97,17 @@ export default function SimulationPage() {
                 onChange={e => setAgentId(e.target.value)}
                 className="w-full bg-white border border-slate-300 rounded-[2px] px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#86BC25]"
               >
-                <option value="agent-01">agent-01 (Rung 2, ₹2,500)</option>
-                <option value="agent-02">agent-02 (Probation)</option>
-                <option value="agent-03">agent-03 (Clawed back)</option>
+                {agents.map((agent: AgentOut) => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.id} (Rung {agent.current_rung}, {fmtLimit(agent.current_limit)})
+                  </option>
+                ))}
               </select>
+              {agentsLoading && <p className="text-[10px] text-slate-500 mt-1">Loading agents...</p>}
+              {agentsError && <p className="text-[10px] text-red-700 mt-1">Couldn&apos;t load agents. Check that the backend is running.</p>}
+              {!agentsLoading && !agentsError && agents.length === 0 && (
+                <p className="text-[10px] text-slate-500 mt-1">No agents are available.</p>
+              )}
             </div>
 
             {/* Phase */}
@@ -140,10 +162,18 @@ export default function SimulationPage() {
             </div>
           )}
 
+          {activeRunError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-[2px]">
+              <span className="text-xs text-red-700 font-bold">
+                Couldn&apos;t load simulation progress. Check that the backend is running.
+              </span>
+            </div>
+          )}
+
           <button
             id="sim-start-btn"
             onClick={() => startRun()}
-            disabled={isPending || !reason.trim()}
+            disabled={isPending || !reason.trim() || agentsLoading || agentsError || agents.length === 0}
             className="flex items-center justify-center gap-2 px-6 py-3 rounded-[2px] bg-[#86BC25] hover:bg-[#72a31d] text-white text-xs font-black transition-colors disabled:opacity-50"
           >
             <IconSimulation className="w-4 h-4" />

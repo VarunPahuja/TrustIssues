@@ -34,14 +34,15 @@ function initMsw() {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
+  const mswEnabled = process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_MSW_ENABLED === "true";
   const [mswReady, setMswReady] = useState(
-    process.env.NEXT_PUBLIC_MSW_ENABLED !== "true"
+    !mswEnabled
   );
 
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_MSW_ENABLED !== "true") return;
+    if (!mswEnabled) return;
     initMsw().then(() => setMswReady(true));
-  }, []);
+  }, [mswEnabled]);
 
   if (!mswReady) return null;
 

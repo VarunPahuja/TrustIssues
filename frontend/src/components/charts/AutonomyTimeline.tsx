@@ -67,6 +67,53 @@ interface ChartDataPoint {
   source: "policy" | "trust" | "merged";
 }
 
+interface TimelineTooltipProps {
+  active?: boolean;
+  payload?: Array<{ payload?: ChartDataPoint }>;
+}
+
+function CustomTooltip({ active, payload }: TimelineTooltipProps) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  return (
+    <div className="bg-white border border-slate-300 rounded p-3 text-xs shadow-md text-slate-900 font-sans">
+      <p className="font-bold text-slate-900 border-b border-slate-200 pb-1 mb-2">
+        {d?.timeLabel}
+      </p>
+      <div className="space-y-1">
+        {d?.limit != null && (
+          <div className="flex justify-between gap-4">
+            <span className="text-slate-600 font-medium">Autonomy Limit:</span>
+            <span className="font-bold text-[#5f8914]">{fmtLimit(d.limit)} (Rung {d.rung})</span>
+          </div>
+        )}
+        {d?.accuracy != null && (
+          <div className="flex justify-between gap-4">
+            <span className="text-slate-600 font-medium">Accuracy:</span>
+            <span className="font-bold text-slate-900">{d.accuracy}%</span>
+          </div>
+        )}
+        {d?.wilsonLower != null && d?.wilsonUpper != null && (
+          <div className="flex justify-between gap-4">
+            <span className="text-slate-600 font-medium">Wilson Band:</span>
+            <span className="font-bold text-blue-700">{d.wilsonLower}% – {d.wilsonUpper}%</span>
+          </div>
+        )}
+      </div>
+      {d?.isClawback && (
+        <div className="mt-2 text-[11px] text-red-700 font-bold bg-red-50 p-1 border border-red-200 rounded">
+          CLAWBACK — Autonomy reduced
+        </div>
+      )}
+      {d?.isPromotion && (
+        <div className="mt-2 text-[11px] text-[#5f8914] font-bold bg-green-50 p-1 border border-green-200 rounded">
+          PROMOTION — Autonomy increased
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AutonomyTimeline({ policyVersions, trustHistory, height = 400 }: Props) {
   // Reverse both to chronological order (APIs return newest-first)
   const chronPolicies = [...policyVersions].reverse();
@@ -116,19 +163,15 @@ export function AutonomyTimeline({ policyVersions, trustHistory, height = 400 }:
   const allPoints = [...policyPoints, ...trustPoints].sort((a, b) => a.timestamp - b.timestamp);
 
   // Forward-fill limit/rung from policy points into trust points
-  let lastLimit: number | null = null;
-  let lastRung: number | null = null;
-  const data = allPoints.map(p => {
-    if (p.limit != null) {
-      lastLimit = p.limit;
-      lastRung = p.rung;
-    }
-    return {
-      ...p,
-      limit: p.limit ?? lastLimit,
-      rung: p.rung ?? lastRung,
-    };
-  });
+  const data = allPoints.reduce<ChartDataPoint[]>((points, point) => {
+    const previous = points[points.length - 1];
+    points.push({
+      ...point,
+      limit: point.limit ?? previous?.limit ?? null,
+      rung: point.rung ?? previous?.rung ?? null,
+    });
+    return points;
+  }, []);
 
   // Find annotation events
   const promotionEvt = data.find(e => e.isPromotion);
@@ -140,48 +183,6 @@ export function AutonomyTimeline({ policyVersions, trustHistory, height = 400 }:
   const clawbackLabel = clawbackEvt
     ? `CLAWBACK → ${fmtLimit(clawbackEvt.limit!)}`
     : "CLAWBACK";
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload?.length) return null;
-    const d = payload[0]?.payload;
-    return (
-      <div className="bg-white border border-slate-300 rounded p-3 text-xs shadow-md text-slate-900 font-sans">
-        <p className="font-bold text-slate-900 border-b border-slate-200 pb-1 mb-2">
-          {d?.timeLabel}
-        </p>
-        <div className="space-y-1">
-          {d?.limit != null && (
-            <div className="flex justify-between gap-4">
-              <span className="text-slate-600 font-medium">Autonomy Limit:</span>
-              <span className="font-bold text-[#5f8914]">{fmtLimit(d.limit)} (Rung {d.rung})</span>
-            </div>
-          )}
-          {d?.accuracy != null && (
-            <div className="flex justify-between gap-4">
-              <span className="text-slate-600 font-medium">Accuracy:</span>
-              <span className="font-bold text-slate-900">{d.accuracy}%</span>
-            </div>
-          )}
-          {d?.wilsonLower != null && d?.wilsonUpper != null && (
-            <div className="flex justify-between gap-4">
-              <span className="text-slate-600 font-medium">Wilson Band:</span>
-              <span className="font-bold text-blue-700">{d.wilsonLower}% – {d.wilsonUpper}%</span>
-            </div>
-          )}
-        </div>
-        {d?.isClawback && (
-          <div className="mt-2 text-[11px] text-red-700 font-bold bg-red-50 p-1 border border-red-200 rounded">
-            CLAWBACK — Autonomy reduced
-          </div>
-        )}
-        {d?.isPromotion && (
-          <div className="mt-2 text-[11px] text-[#5f8914] font-bold bg-green-50 p-1 border border-green-200 rounded">
-            PROMOTION — Autonomy increased
-          </div>
-        )}
-      </div>
-    );
-  };
 
   if (data.length === 0) {
     return (
