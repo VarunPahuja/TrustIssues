@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+from shared import reason_codes
 from shared.constants import limit_of, rung_of
 from shared.contracts import Recommendation
 from shared.enums import Direction, RecommendationStatus
@@ -441,6 +442,17 @@ def test_recommendation_above_evidence_is_clamped(client, admin_headers, monkeyp
     assert body["clamped"] is True
     assert body["clamped_from"] == 999_999
     assert body["proposed_limit"] < 999_999
+    # docs/audits/2026-09-06-audit.md 1f: RECOMMENDATION_CLAMPED was defined
+    # in shared/, exported to the frontend, and produced by nothing.
+    assert reason_codes.RECOMMENDATION_CLAMPED in body["reason_codes"]
+
+
+def test_an_unclamped_recommendation_carries_no_clamp_reason_code(client, admin_headers):
+    resp = client.post("/api/v1/agents/agent-02/recommendations", headers=admin_headers)
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["clamped"] is False
+    assert reason_codes.RECOMMENDATION_CLAMPED not in body["reason_codes"]
 
 
 def test_every_generation_appends_exactly_one_audit_entry_and_the_chain_verifies(

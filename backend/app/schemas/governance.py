@@ -52,6 +52,20 @@ class RecommendationOut(BaseModel):
     clamped: bool
     clamped_from: int | None
 
+    # Not on `shared.contracts.Recommendation` — that dataclass has no
+    # `reason_codes` field to mirror, and `shared/` is frozen, so this is a
+    # backend-local addition rather than a treaty field. Derived at read
+    # time from `clamped` (`app.services.governance.recommendation_out`),
+    # the same way `has_dissent`/`confidence`/`proposed_rung` are already
+    # derived from `agent_opinions` rather than stored — see
+    # `app/models/recommendations.py`'s docstring for why this table
+    # prefers deriving over storing redundant data that could disagree with
+    # its own source. Currently ever contains at most one code
+    # (`shared.reason_codes.RECOMMENDATION_CLAMPED`) — a list, not a single
+    # optional field, so a second recommendation-level reason code never
+    # needs a shape change to add.
+    reason_codes: list[str] = Field(default_factory=list)
+
 
 class RecommendationDecision(BaseModel):
     """Request body for both `POST .../approve` and `POST .../reject`.
