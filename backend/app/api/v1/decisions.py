@@ -74,7 +74,21 @@ def _create_decision(db: Session, body: DecisionCreate) -> Decision:
             detail={"ground_truth": body.ground_truth.value},
         )
 
-    agent = db.get(Agent, body.agent_id)
+    # `.with_for_update()` instead of `db.get()`: this row lock is the fix
+    # for the sequence race below (docs/audits/2026-09-06-audit.md Race 1).
+    # Locking the agent — a fixed, pre-existing row — serializes every
+    # concurrent decision for this agent for the rest of the transaction, so
+    # the `max(sequence)` read and the `Decision` insert become atomic
+    # relative to each other. A unique constraint plus retry was the other
+    # option; this was preferred because it guarantees zero failed inserts
+    # (no retry loop, no client-visible errors) and a gap-free sequence,
+    # rather than merely detecting the collision after the fact. No-op
+    # outside Postgres (SQLite silently ignores `FOR UPDATE`), which is fine:
+    # the test suite's SQLite fixture never runs concurrent requests against
+    # the same engine.
+    agent = db.execute(
+        select(Agent).where(Agent.id == body.agent_id).with_for_update()
+    ).scalar_one_or_none()
     if agent is None:
         raise not_found(
             "agent_not_found", f"No agent {body.agent_id!r}.", {"agent_id": body.agent_id}

@@ -258,6 +258,7 @@ def test_modifying_an_existing_audit_log_entry_is_rejected(engine):
                 payload={"a": 1},
                 prev_hash="0" * 64,
                 hash="1" * 64,
+                log_seq=1,
             )
         )
         session.commit()
