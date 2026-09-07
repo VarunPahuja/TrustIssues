@@ -99,17 +99,31 @@ def _record_decision(
     policy_version_id: str | None = None
     if verdict is RecommendationStatus.APPROVED:
         agent = db.get(Agent, row.agent_id)
-        policy_version_id = f"pv-{uuid.uuid4().hex[:12]}"
-        apply_policy_version(
-            db,
-            agent,
-            id=policy_version_id,
-            limit=row.proposed_limit,
-            rung=rung_of(row.proposed_limit),
-            effective_from=decided_at,
-            created_by=user.user_id,
-            reason=reason,
-        )
+        # Only write a new policy version — and therefore only touch the
+        # cooldown clock, which `app/services/trust.py:agent_context` derives
+        # from the *latest* version's `effective_from` — when approval
+        # actually changes the agent's limit. A HOLD recommendation's
+        # `proposed_limit` already equals `agent.current_limit`
+        # (trust/trust_engine/ladder.py's HOLD branch always returns
+        # `context.current_limit` unchanged), so approving one is a real
+        # human decision worth recording (the `Approval` row above already
+        # does that) but not a policy change. Before this fix, every
+        # approval — including a no-op HOLD approval — reset
+        # `decisions_since_last_change` to 0 regardless, which could make an
+        # agent wait out a fresh cooldown for a decision that changed
+        # nothing; see docs/DECISION_LOG.md for the full reasoning.
+        if row.proposed_limit != agent.current_limit:
+            policy_version_id = f"pv-{uuid.uuid4().hex[:12]}"
+            apply_policy_version(
+                db,
+                agent,
+                id=policy_version_id,
+                limit=row.proposed_limit,
+                rung=rung_of(row.proposed_limit),
+                effective_from=decided_at,
+                created_by=user.user_id,
+                reason=reason,
+            )
 
     append_entry(
         db,
@@ -117,7 +131,15 @@ def _record_decision(
         ts=decided_at,
         actor=user.user_id,
         actor_type="user",
-        event_type="recommendation.approved" if policy_version_id else "recommendation.rejected",
+        # `verdict`, not `policy_version_id` — a HOLD approval now leaves
+        # `policy_version_id` `None` (see above) despite genuinely being an
+        # APPROVED verdict; the two stopped meaning the same thing the
+        # moment approving a no-op recommendation stopped writing a version.
+        event_type=(
+            "recommendation.approved"
+            if verdict is RecommendationStatus.APPROVED
+            else "recommendation.rejected"
+        ),
         entity_type="recommendation",
         entity_id=rec_id,
         payload={
@@ -166,11 +188,16 @@ def approve_recommendation(
     """Authorize a pending recommendation. ADMIN only.
 
     Writes an `approvals` row (`decided_by`, `verdict=APPROVED`, `reason`,
-    `decided_at`), flips `Recommendation.status` to `APPROVED`, and — in the
-    same transaction — writes the new `policy_versions` row that actually
-    changes `agents.current_limit`/`current_rung`
-    (docs/lanes/vp.md: "Never update agents.current_limit without writing a
-    policy_versions row in the same transaction").
+    `decided_at`), flips `Recommendation.status` to `APPROVED`, and — only if
+    `proposed_limit` actually differs from the agent's current limit — writes
+    the new `policy_versions` row that changes `agents.current_limit`/
+    `current_rung` in the same transaction (docs/lanes/vp.md: "Never update
+    agents.current_limit without writing a policy_versions row in the same
+    transaction"). Approving a HOLD recommendation (`proposed_limit` already
+    equal to the current limit) is still recorded via the `approvals` row,
+    but writes no policy version — and so does not reset the cooldown clock
+    `app/services/trust.py:agent_context` derives from the latest version's
+    `effective_from`, which a no-op approval has no business touching.
     """
     return _record_decision(db, user, rec_id, RecommendationStatus.APPROVED, body.reason)
 

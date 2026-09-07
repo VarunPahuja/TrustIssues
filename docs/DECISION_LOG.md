@@ -6,6 +6,46 @@ ADR.
 
 ---
 
+**2026-09-07 — Varun P. (`vp/freeze-cleanup`)** — Approving a `HOLD`
+recommendation no longer resets an agent's cooldown clock. `_record_decision`
+(`backend/app/api/v1/recommendations.py`) called `apply_policy_version` on
+every `APPROVED` verdict unconditionally, including a `HOLD` recommendation
+whose `proposed_limit` already equals the agent's current limit
+(`trust/trust_engine/ladder.py`'s `HOLD` branch always returns
+`context.current_limit` unchanged) — writing a redundant `PolicyVersion` row
+with the same limit but a fresh `effective_from`. Since
+`app/services/trust.py:agent_context` derives `decisions_since_last_change`
+from the *latest* version's `effective_from`, that no-op write reset the
+cooldown clock to 0 regardless. Confirmed live: approving a rigged `HOLD`
+recommendation dropped `decisions_since_last_change` from 2 to 0 without the
+fix, and left it unchanged with it
+(`backend/tests/test_recommendations.py::test_approving_a_hold_recommendation_does_not_reset_the_cooldown_clock`).
+**Decided this was a bug, not a feature**: the cooldown
+(`COOLDOWN_BETWEEN_INCREASES`) exists specifically so a lucky streak right
+after a real promotion can't immediately trigger another one — it has no
+relationship to whether a human clicked approve on a recommendation that
+changed nothing. Resetting it on every approval, including HOLDs, meant an
+agent could be made to wait out a fresh 100-decision cooldown indefinitely if
+HOLD recommendations kept being generated and approved while it was
+otherwise fully eligible for a real increase — actively working against the
+cooldown's own stated purpose, not just redundant. Fix: only call
+`apply_policy_version` when `row.proposed_limit != agent.current_limit`.
+Approving a HOLD is still recorded (`approvals` row, `Recommendation.status`
+flips to `APPROVED`) — only the no-op policy version write is skipped. Also
+fixed a latent bug this exposed: the audit-log `event_type` was chosen from
+`policy_version_id`'s truthiness rather than `verdict` directly, which would
+have mislabelled a HOLD approval as `recommendation.rejected` in the audit
+trail now that `policy_version_id` can be `None` on a genuine approval.
+**Why:** docs/audits/2026-09-06-audit.md's freeze-cleanup item 4, read
+against `trust/trust_engine/ladder.py` and
+`backend/app/models/policy_versions.py` directly rather than guessed at.
+**Affects:** `backend/app/api/v1/recommendations.py` only — no schema
+change, no `shared/` change; `Recommendation.proposed_limit`/
+`Agent.current_limit` were already both real columns being compared, not new
+state.
+
+---
+
 **2026-09-01 — Varun C. (PR #21 into `vc/swappable-providers`, landed on `main`
 via PR #23)** — Governance cached mode now replays real Gemini responses, and
 live mode is open. Fifteen recordings committed, keyed
