@@ -41,7 +41,7 @@ _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
-from simulator.constants import DEFAULT_SEED, WILSON_Z
+from simulator.constants import DEFAULT_SEED, WILSON_Z, PHASE_ERROR_RATES
 from shared.enums import Action as AgentDecision
 from simulator.models import SimulationPhase, SimulationRunConfig
 from simulator.generator import InvoiceGenerator
@@ -62,7 +62,7 @@ def run_simulation(phase_str: str, n: int = 200) -> dict:
     phase_enum = SP(phase_str)
     params = get_params(phase_str)
     invoices = InvoiceGenerator(seed=DEFAULT_SEED, params=params, phase=phase_enum).generate(n)
-    agent = ScriptedAgent(error_rate=0.0, seed=DEFAULT_SEED)
+    agent = ScriptedAgent(error_rate=PHASE_ERROR_RATES[phase_str], seed=DEFAULT_SEED)
 
     config = SimulationRunConfig(
         phase=phase_enum,
@@ -102,16 +102,12 @@ def run_simulation(phase_str: str, n: int = 200) -> dict:
 # ---------------------------------------------------------------------------
 
 class TestGroundTruthDistribution:
-    def test_baseline_has_approve_escalate_and_reject(self):
-        """Baseline must contain all three decision types — not all-APPROVE."""
+    def test_baseline_has_approve_and_reject(self):
+        """Baseline must contain both APPROVE and REJECT answers — not all one type."""
         invoices = InvoiceGenerator(seed=DEFAULT_SEED, params=baseline_params()).generate(200)
         decisions = {inv.ground_truth_decision for inv in invoices}
         assert AgentDecision.APPROVE in decisions, "Baseline has no APPROVE decisions"
-        assert AgentDecision.ESCALATE in decisions, "Baseline has no ESCALATE decisions"
-        # REJECT may be small but should be present in 200 invoices
-        assert AgentDecision.REJECT in decisions, (
-            "Baseline has no REJECT decisions — distribution may be too easy"
-        )
+        assert AgentDecision.REJECT in decisions, "Baseline has no REJECT decisions"
 
     def test_degraded_has_more_rejects_than_baseline(self):
         """Degraded phase must have more hard-invalid invoices."""
@@ -217,7 +213,7 @@ class TestErrorRateValidation:
         )
         # Recovery should trend better than degraded (easing back)
         # This is a soft check — not a hard requirement
-        print(f"\nPhase error rates → baseline: {b_err:.1%}, recovery: {r_err:.1%}, degraded: {d_err:.1%}")
+        print(f"\nPhase error rates -> baseline: {b_err:.1%}, recovery: {r_err:.1%}, degraded: {d_err:.1%}")
 
     def test_baseline_wlb_computable(self):
         """Wilson LB must be computable from a 200-invoice baseline run."""

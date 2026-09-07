@@ -50,3 +50,7 @@ build/
 
 # Alembic
 # Keep migration files tracked!
+
+# Personal AI session-continuity notes — local only, never merged to main
+# or shared with other lanes.
+CLAUDE_HANDOFF.md

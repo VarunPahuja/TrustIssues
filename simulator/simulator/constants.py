@@ -16,6 +16,16 @@ DEGRADED_AMBIGUOUS_VENDOR_PROB = 0.25
 RECOVERY_MISSING_FIELD_PROB = 0.05
 RECOVERY_BOUNDARY_FRACTION = 0.10
 RECOVERY_AMBIGUOUS_VENDOR_PROB = 0.10
+
+# ScriptedAgent mistake rate per demo phase. "good" and "recovery" run a
+# mostly-reliable agent; "degraded" injects a real performance drop that the
+# trust engine detects as drift and claws back.
+PHASE_ERROR_RATES = {
+    "good": 0.05,
+    "degraded": 0.30,
+    "recovery": 0.10,
+}
+
 WILSON_Z = 1.96
 DEFAULT_API_BASE_URL = "http://localhost:8000"
 DEFAULT_API_VERSION = "v1"

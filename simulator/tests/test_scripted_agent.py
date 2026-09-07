@@ -23,7 +23,8 @@ import pytest
 _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
-
+    
+from shared.enums import Action
 from simulator.constants import DEFAULT_SEED
 from simulator.models import AgentOutcome, SimulationPhase
 from simulator.generator import InvoiceGenerator
@@ -154,20 +155,27 @@ class TestErrorRate:
         assert decisions_a == decisions_b
 
     def test_higher_error_rate_produces_more_wrong_decisions(self, invoices):
-        """Statistically, more errors should appear with higher error_rate."""
-        def count_correct(agent):
-            return sum(
-                1 for inv in invoices
-                if agent.decide(inv).decision == inv.ground_truth_decision
-            )
-
+        """On the invoices the rule-faithful agent acts on (not deferrals), a
+        higher error_rate must produce fewer correct decisions."""
         clean = ScriptedAgent(error_rate=0.0, seed=DEFAULT_SEED)
         noisy = ScriptedAgent(error_rate=0.5, seed=DEFAULT_SEED)
 
-        correct_clean = count_correct(clean)
-        correct_noisy = count_correct(noisy)
+        # error_rate=0.0 is deterministic, so this filter is stable.
+        acted = [
+            inv for inv in invoices
+            if clean.decide(inv).decision != Action.ESCALATE
+        ]
+
+        def correct_on(agent):
+            return sum(
+                1 for inv in acted
+                if agent.decide(inv).decision == inv.ground_truth_decision
+            )
+
+        correct_clean = correct_on(clean)
+        correct_noisy = correct_on(noisy)
 
         assert correct_clean >= correct_noisy, (
-            f"Zero error rate should not produce fewer correct decisions: "
+            f"Injected errors should reduce correctness on acted decisions: "
             f"clean={correct_clean}, noisy={correct_noisy}"
         )

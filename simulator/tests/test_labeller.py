@@ -71,19 +71,19 @@ class TestRule1MissingFields:
     def test_missing_vendor_escalates(self, labeller):
         inv = FakeInvoice(missing_field_names=["vendor_name"], has_missing_fields=True)
         decision, reason, confidence = labeller.label(inv)
-        assert decision == AgentDecision.ESCALATE
+        assert decision == AgentDecision.REJECT
         assert reason == RC.ESCALATE_MISSING_FIELDS
         assert confidence == 1.0
 
     def test_missing_submitted_by_escalates(self, labeller):
         inv = FakeInvoice(missing_field_names=["submitted_by"], has_missing_fields=True)
         decision, reason, _ = labeller.label(inv)
-        assert decision == AgentDecision.ESCALATE
+        assert decision == AgentDecision.REJECT
 
     def test_multiple_missing_fields_escalates(self, labeller):
         inv = FakeInvoice(missing_field_names=["vendor_name", "invoice_date"], has_missing_fields=True)
         decision, _, _ = labeller.label(inv)
-        assert decision == AgentDecision.ESCALATE
+        assert decision == AgentDecision.REJECT
 
     def test_missing_fields_beats_blocked_vendor(self, labeller):
         """Rule 1 (missing fields) has higher priority than Rule 2 (blocked vendor)."""
@@ -93,7 +93,7 @@ class TestRule1MissingFields:
             has_missing_fields=True,
         )
         decision, reason, _ = labeller.label(inv)
-        assert decision == AgentDecision.ESCALATE
+        assert decision == AgentDecision.REJECT
         assert reason == RC.ESCALATE_MISSING_FIELDS  # Rule 1 wins
 
 
@@ -200,7 +200,7 @@ class TestRule7ExceedsTierLimit:
         # LOW limit for supplies = 2,500; amount 3,000 exceeds it
         inv = FakeInvoice(amount="3000.00", category="supplies")
         decision, reason, confidence = labeller.label(inv)
-        assert decision == AgentDecision.ESCALATE
+        assert decision == AgentDecision.APPROVE
         assert reason == RC.ESCALATE_EXCEEDS_TIER
         assert confidence == 1.0
 
@@ -208,7 +208,7 @@ class TestRule7ExceedsTierLimit:
         # LOW limit for travel = 3,000; 3,001 just over
         inv = FakeInvoice(amount="3001.00", category="travel")
         decision, reason, _ = labeller.label(inv)
-        assert decision == AgentDecision.ESCALATE
+        assert decision == AgentDecision.APPROVE
 
 
 # ---------------------------------------------------------------------------
@@ -220,7 +220,7 @@ class TestRule8BoundaryZone:
         # Current rung limit is ₹2,500; boundary zone is [₹2,375, ₹2,500].
         inv = FakeInvoice(amount="2400.00", category="travel")
         decision, reason, confidence = labeller.label(inv)
-        assert decision == AgentDecision.ESCALATE
+        assert decision == AgentDecision.APPROVE
         assert reason == RC.ESCALATE_BOUNDARY_AMOUNT
         assert confidence == 0.7
 
@@ -243,7 +243,7 @@ class TestRule9AmbiguousVendor:
             category="supplies",
         )
         decision, reason, confidence = labeller.label(inv)
-        assert decision == AgentDecision.ESCALATE
+        assert decision == AgentDecision.APPROVE
         assert reason == RC.ESCALATE_AMBIGUOUS_VENDOR
         assert confidence == 0.8
 

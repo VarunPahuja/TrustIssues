@@ -59,11 +59,18 @@ class ScriptedAgent:
         error_rate: float = 0.08,
         seed: int = DEFAULT_SEED,
         current_limit: int = AUTONOMY_FLOOR,
+        allow_critical_errors: bool = True,
     ) -> None:
         self.agent_id = agent_id
         self.name = name
         self.error_rate = error_rate
         self.current_limit = current_limit
+        # A CRITICAL error is approving an invoice that should be rejected —
+        # money leaves the building. The trust engine treats a single one in the
+        # recent window as an instant clawback, so a well-behaved agent must not
+        # make them: its mistakes should be cautious (wrongly rejecting) instead.
+        # Only the degraded phase turns these on.
+        self.allow_critical_errors = allow_critical_errors
         self._rng = random.Random(seed)
 
     def decide(self, invoice: Invoice) -> AgentOutcome:
@@ -73,7 +80,7 @@ class ScriptedAgent:
         if self._rng.random() < self.error_rate:
             # Inject a wrong decision (opposite of correct)
             wrong_decision, wrong_reason = self._flip_decision(
-                correct_decision, invoice
+                correct_decision, correct_reason, invoice
             )
             return AgentOutcome(
                 invoice_id=invoice.invoice_id,
@@ -124,14 +131,31 @@ class ScriptedAgent:
         return Action.APPROVE, RC.APPROVE_WITHIN_LIMIT
 
     def _flip_decision(
-        self, correct: Action, invoice: Invoice
+        self, correct: Action, correct_reason: str, invoice: Invoice
     ) -> tuple[Action, str]:
-        """Return a plausible wrong decision."""
+        """Return a genuinely wrong ACTION — never a deferral.
+
+        An injected error means the agent acted incorrectly, so it must show
+        up as a wrong acted decision (lower accuracy), not as an escalation
+        (which the trust engine excludes from accuracy entirely).
+        """
         if correct == Action.APPROVE:
-            # Wrongly escalate (most common mistake)
-            return Action.ESCALATE, RC.ESCALATE_BOUNDARY_AMOUNT
-        if correct == Action.ESCALATE:
-            # Wrongly approve (miss the escalation trigger)
-            return Action.APPROVE, RC.APPROVE_WITHIN_LIMIT
-        # correct == REJECT → wrongly escalate instead
-        return Action.ESCALATE, RC.ESCALATE_POLICY_CONFLICT
+            # Wrongly reject a legitimate invoice — a non-critical error.
+            return Action.REJECT, RC.REJECT_SCRIPTED_ERROR
+        if correct == Action.REJECT:
+            if not self.allow_critical_errors:
+                # A cautious agent doesn't wrongly approve a bad invoice.
+                # Skip the injection rather than manufacture a critical error.
+                return Action.REJECT, RC.REJECT_SCRIPTED_ERROR
+            # Wrongly approve a bad invoice — a CRITICAL error (money leaves).
+            return Action.APPROVE, RC.APPROVE_SCRIPTED_ERROR
+        # correct == Action.ESCALATE.
+        if not self.allow_critical_errors:
+            # A cautious agent still defers when it should. Injecting an error
+            # here would turn a deferral into an acted decision, which changes
+            # utilization rather than accuracy — not the mistake we're modelling.
+            return Action.ESCALATE, correct_reason
+        # A degraded agent misses the escalation trigger and acts anyway.
+        if self._rng.random() < 0.5:
+            return Action.APPROVE, RC.APPROVE_SCRIPTED_ERROR
+        return Action.REJECT, RC.REJECT_SCRIPTED_ERROR

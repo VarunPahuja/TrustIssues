@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import sys
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional, Callable
 
 _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -109,13 +109,15 @@ class SimulationRunner:
                     progress.advance(task)
 
         # Final statistics
-        result.completed_at = datetime.utcnow()
+        result.completed_at = datetime.now(UTC)
         if result.total_invoices > 0:
-            result.accuracy = result.correct_decisions / result.total_invoices
-            result.wilson_lower_bound = wilson_lower_bound(
-                result.correct_decisions, result.total_invoices
-            )
-
+          acted = result.total_invoices - result.escalated_count
+        # Final statistics
+        result.completed_at = datetime.now(UTC)
+        acted = result.total_invoices - result.escalated_count
+        if acted > 0:
+            result.accuracy = result.correct_decisions / acted
+            result.wilson_lower_bound = wilson_lower_bound(result.correct_decisions, acted)
         # Cache stats (if agent supports it)
         if hasattr(self.agent, "cache_stats"):
             stats = self.agent.cache_stats
@@ -135,8 +137,12 @@ class SimulationRunner:
         # Agent decides (may hit cache)
         record = self.agent.decide(invoice)
 
-        # Score against ground truth
-        record.is_correct = record.action == invoice.ground_truth_decision
+           # Score against ground truth — an escalation is neither right nor wrong
+        record.is_correct = (
+            None
+            if record.action == Action.ESCALATE
+            else record.action == invoice.ground_truth_decision
+        )
 
         # Update counters
         if record.action == Action.APPROVE:

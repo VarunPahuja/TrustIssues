@@ -4,10 +4,10 @@
   "count": 200,
   "invoices": [
     {
-      "invoice_id": "72096e6a-8901-4f42-8daf-64a43ff278f4",
+      "invoice_id": "5e5ccb0a-bebb-4e7e-a966-fa5d0cedd636",
       "submitted_by": "EMP1035",
       "vendor_name": "Innovate Corp",
-      "invoice_date": "2026-08-19",
+      "invoice_date": "2026-08-24",
       "category": "software",
       "amount": "492.00",
       "description": "Development tool licence",
@@ -24,10 +24,10 @@
       "ground_truth_confidence": 0.7
     },
     {
-      "invoice_id": "1d71e1ae-9259-4a1d-88e6-799e24639ff6",
+      "invoice_id": "61045da3-e201-40f2-85ea-f980f4d52c34",
       "submitted_by": "EMP1018",
       "vendor_name": "KPMG Advisory",
-      "invoice_date": "2026-08-04",
+      "invoice_date": "2026-08-09",
       "category": "travel",
       "amount": "980.00",
       "description": "Team offsite travel",
@@ -44,10 +44,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "fd80a98b-2412-4a58-8d32-f4ed8af4da79",
+      "invoice_id": "04a1f9f9-bb62-4555-9670-74600823be89",
       "submitted_by": "EMP1023",
       "vendor_name": "MakeMyTrip Corporate",
-      "invoice_date": "2026-08-21",
+      "invoice_date": "2026-08-26",
       "category": "travel",
       "amount": "3058.00",
       "description": "Business travel to client site",
@@ -64,10 +64,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "58976570-714a-4b02-a27e-e20becc7269f",
+      "invoice_id": "bdc47e2b-1475-4585-be2f-f1771d7f58c8",
       "submitted_by": "EMP1005",
       "vendor_name": "Zoho Corporation",
-      "invoice_date": "2026-06-20",
+      "invoice_date": "2026-06-25",
       "category": "logistics",
       "amount": "655.00",
       "description": "Freight and courier charges",
@@ -84,10 +84,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "980f02df-d05f-4e05-aa63-3b4f771e33f3",
+      "invoice_id": "73b4a006-8bbb-4aab-a903-d06e7904ab13",
       "submitted_by": "EMP1011",
       "vendor_name": "Ernst & Young LLP",
-      "invoice_date": "2026-06-12",
+      "invoice_date": "2026-06-17",
       "category": "supplies",
       "amount": "3025.00",
       "description": "Office stationery and consumables",
@@ -104,10 +104,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "a1827c31-7019-4cf7-bcb2-0493f20638fa",
+      "invoice_id": "9b55930e-b86c-4ce1-a625-8c95f2cd9d71",
       "submitted_by": "EMP1050",
       "vendor_name": "Delhivery Ltd",
-      "invoice_date": "2026-08-04",
+      "invoice_date": "2026-08-09",
       "category": "software",
       "amount": "5993.00",
       "description": "Cloud storage subscription",
@@ -124,10 +124,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "31f2e6ff-9fbc-4b3b-9bf8-b21a36fa7a80",
+      "invoice_id": "da67fe71-838b-4cd3-9d24-a1f0beec6401",
       "submitted_by": "EMP1032",
       "vendor_name": "Taj Hotels Corporate",
-      "invoice_date": "2026-07-23",
+      "invoice_date": "2026-07-28",
       "category": "consulting",
       "amount": "3072.00",
       "description": "HR consulting and recruitment",
@@ -144,10 +144,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "f4c8c58c-cd01-4174-ac36-ca328a61f77e",
+      "invoice_id": "81735404-a782-489a-876c-b2c1ad3da5d9",
       "submitted_by": "EMP1049",
       "vendor_name": "OYO Business Travel",
-      "invoice_date": "2026-06-28",
+      "invoice_date": "2026-07-03",
       "category": "software",
       "amount": "2283.00",
       "description": "Security software licence",
@@ -164,10 +164,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "0f5da29f-ca5f-4446-8087-6e427931f22c",
+      "invoice_id": "bc5a9092-cc83-4f05-8251-93fef200ee08",
       "submitted_by": "EMP1036",
       "vendor_name": "Ernst & Young LLP",
-      "invoice_date": "2026-06-26",
+      "invoice_date": "2026-07-01",
       "category": "consulting",
       "amount": "3577.00",
       "description": "HR consulting and recruitment",
@@ -184,10 +184,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "979b8ad4-ea5e-4ddb-86f1-57d99c45e83c",
+      "invoice_id": "0c1c19da-34cf-413d-a28a-da0ab4c9d4d8",
       "submitted_by": "EMP1033",
       "vendor_name": "NoName Supplies",
-      "invoice_date": "2026-06-29",
+      "invoice_date": "2026-07-04",
       "category": "supplies",
       "amount": "5399.00",
       "description": "Printer cartridges and paper",
@@ -204,10 +204,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "20a99fac-8720-4ff8-9d71-469105d7d9d8",
+      "invoice_id": "84abc5b2-e0d5-4b6f-9180-9356196d6ac4",
       "submitted_by": "EMP1032",
       "vendor_name": "FedEx India",
-      "invoice_date": "2026-09-01",
+      "invoice_date": "2026-09-06",
       "category": "travel",
       "amount": "13828.00",
       "description": "Team offsite travel",
@@ -224,10 +224,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "41570b3e-8c3d-45ac-9bcb-9d7990e76ce0",
+      "invoice_id": "50037c5d-49b6-4b36-af97-bccf8479aac6",
       "submitted_by": "EMP1009",
       "vendor_name": "Wipro Services",
-      "invoice_date": "2026-06-25",
+      "invoice_date": "2026-06-30",
       "category": "travel",
       "amount": "4104.00",
       "description": "Airport transfers and accommodation",
@@ -244,10 +244,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "f176b261-999a-4060-a9d9-c0ced487279e",
+      "invoice_id": "2ea1e4cb-05e2-4575-90e0-509671bf3392",
       "submitted_by": "EMP1043",
       "vendor_name": "Amazon Business",
-      "invoice_date": "2026-07-24",
+      "invoice_date": "2026-07-29",
       "category": "logistics",
       "amount": "5344.00",
       "description": "Customs and clearance charges",
@@ -264,10 +264,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "3f8b0bc1-c043-48a6-a9d3-5e9ac24782c4",
+      "invoice_id": "3d4a6cec-8afe-4a4b-b757-0a4d835ef09d",
       "submitted_by": "EMP1005",
       "vendor_name": "Tech Dynamics",
-      "invoice_date": "2026-09-01",
+      "invoice_date": "2026-09-06",
       "category": "travel",
       "amount": "2669.00",
       "description": "Airport transfers and accommodation",
@@ -286,10 +286,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "0398f6db-46cf-4944-bb46-a3795ea2d26f",
+      "invoice_id": "01b8f26e-dd80-4d45-9ac4-da232b121fb5",
       "submitted_by": "EMP1031",
       "vendor_name": "Taj Hotels Corporate",
-      "invoice_date": "2026-06-20",
+      "invoice_date": "2026-06-25",
       "category": "travel",
       "amount": "28952.00",
       "description": "Team offsite travel",
@@ -306,10 +306,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "cc08f68c-d8cb-480b-a265-a75691034f24",
+      "invoice_id": "41ce1be3-6813-4b9b-8eed-ebf9de223193",
       "submitted_by": "EMP1022",
       "vendor_name": "MakeMyTrip Corporate",
-      "invoice_date": "2026-08-25",
+      "invoice_date": "2026-08-30",
       "category": "consulting",
       "amount": "5141.00",
       "description": "Legal advisory services",
@@ -326,10 +326,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "8b0e47a6-6a41-4a33-ad2e-9253b57e6f18",
+      "invoice_id": "c16a645a-177f-4129-8a17-db837af9f93f",
       "submitted_by": "EMP1036",
       "vendor_name": "Blue Ocean Tech",
-      "invoice_date": "2026-08-23",
+      "invoice_date": "2026-08-28",
       "category": "consulting",
       "amount": "964.00",
       "description": "Strategy consulting engagement",
@@ -346,10 +346,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "9e074ff2-774b-4d08-89c7-cf15e6cc40b2",
+      "invoice_id": "46babe3e-9040-4906-906a-e80ab25851b8",
       "submitted_by": "EMP1011",
       "vendor_name": "Amazon Business",
-      "invoice_date": "2026-07-12",
+      "invoice_date": "2026-07-17",
       "category": "logistics",
       "amount": "10463.00",
       "description": "Last-mile delivery costs",
@@ -366,10 +366,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "ee38018f-cc37-450d-8151-ed03674829a7",
+      "invoice_id": "a59882d6-7bb1-42ae-80cc-76760e7bf31c",
       "submitted_by": "EMP1032",
       "vendor_name": "Apex Trading Co",
-      "invoice_date": "2026-06-22",
+      "invoice_date": "2026-06-27",
       "category": "logistics",
       "amount": "3504.00",
       "description": "Freight and courier charges",
@@ -386,10 +386,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "66744672-f248-49a6-9f83-373089faf610",
+      "invoice_id": "23065bf3-f719-44c0-aad6-fded0741d537",
       "submitted_by": "EMP1006",
       "vendor_name": "IRCTC Rail",
-      "invoice_date": "2026-08-25",
+      "invoice_date": "2026-08-30",
       "category": "software",
       "amount": "1760.00",
       "description": "Security software licence",
@@ -406,10 +406,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "c477260b-bf26-410c-b086-d7a60dc11f7b",
+      "invoice_id": "fe05e65b-8f63-4833-a2f5-d55f281473f1",
       "submitted_by": "EMP1027",
       "vendor_name": "Horizon Tech",
-      "invoice_date": "2026-08-27",
+      "invoice_date": "2026-09-01",
       "category": "travel",
       "amount": "3054.00",
       "description": "Team offsite travel",
@@ -426,10 +426,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "060b18ef-924a-45c9-8b23-73266014addb",
+      "invoice_id": "f15a2846-38bb-4597-b13d-7ef485fbf691",
       "submitted_by": "EMP1035",
       "vendor_name": "Metro Supplies",
-      "invoice_date": "2026-08-23",
+      "invoice_date": "2026-08-28",
       "category": "travel",
       "amount": "3949.00",
       "description": "Conference attendance",
@@ -448,10 +448,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "cd1c1b14-1538-43a4-945f-08a6ab03ad85",
+      "invoice_id": "76dd59d1-c9b6-43b2-8526-2c697922c6c6",
       "submitted_by": "EMP1042",
       "vendor_name": "Microsoft India",
-      "invoice_date": "2026-06-15",
+      "invoice_date": "2026-06-20",
       "category": "consulting",
       "amount": "2520.00",
       "description": "HR consulting and recruitment",
@@ -468,10 +468,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "5a0d1913-b715-4590-afcf-8696b4d680a4",
+      "invoice_id": "35e85547-e20f-4f14-83ad-fa7a38e0b651",
       "submitted_by": "EMP1039",
       "vendor_name": "Delhivery Ltd",
-      "invoice_date": "2026-08-13",
+      "invoice_date": "2026-08-18",
       "category": "logistics",
       "amount": "13828.00",
       "description": "Customs and clearance charges",
@@ -488,10 +488,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "f79268b2-6019-44fd-997c-488867ea88ed",
+      "invoice_id": "e24bd315-d29d-4841-b0c3-3a0359b18a07",
       "submitted_by": "EMP1011",
       "vendor_name": "QuickBill Ltd",
-      "invoice_date": "2026-07-28",
+      "invoice_date": "2026-08-02",
       "category": "travel",
       "amount": "3274.00",
       "description": "Business travel to client site",
@@ -511,10 +511,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "e2b2be99-ee2b-48f3-9692-6a28364b42eb",
+      "invoice_id": "b5d217ce-48de-49b1-94e5-f8a208159dca",
       "submitted_by": "EMP1028",
       "vendor_name": "NoName Supplies",
-      "invoice_date": "2026-06-19",
+      "invoice_date": "2026-06-24",
       "category": "travel",
       "amount": "5077.00",
       "description": "Conference attendance",
@@ -531,10 +531,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "efb1ee2a-8a93-4913-a4a3-d84f043387f3",
+      "invoice_id": "b7e6f7f9-ee1e-4ce9-bd5c-9c55f60a6fb5",
       "submitted_by": "EMP1048",
       "vendor_name": "Delhivery Ltd",
-      "invoice_date": "2026-07-11",
+      "invoice_date": "2026-07-16",
       "category": "software",
       "amount": "3332.00",
       "description": "Development tool licence",
@@ -551,10 +551,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "cd1986c2-f156-4bd2-844c-fc9d0ab937f3",
+      "invoice_id": "c462a8f2-fe31-4d54-8e35-402f1622ff7e",
       "submitted_by": "EMP1016",
       "vendor_name": "KPMG Advisory",
-      "invoice_date": "2026-06-08",
+      "invoice_date": "2026-06-13",
       "category": "supplies",
       "amount": "522.00",
       "description": "Office stationery and consumables",
@@ -571,10 +571,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "e88a8841-7ef6-4895-b27b-052ac42e9388",
+      "invoice_id": "61356fc0-6c8d-42ee-888b-e9bd01bb5908",
       "submitted_by": "EMP1015",
       "vendor_name": "Capital Services",
-      "invoice_date": "2026-07-05",
+      "invoice_date": "2026-07-10",
       "category": "consulting",
       "amount": "505.00",
       "description": "Financial advisory services",
@@ -591,10 +591,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "f289ce6b-75d5-43f1-86db-cd98f0db5c73",
+      "invoice_id": "35bfecea-f313-403e-80e6-de70bc343bc0",
       "submitted_by": "EMP1035",
       "vendor_name": "Deloitte India",
-      "invoice_date": "2026-06-07",
+      "invoice_date": "2026-06-12",
       "category": "consulting",
       "amount": "18566.00",
       "description": "HR consulting and recruitment",
@@ -611,10 +611,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "3ca2da5a-d84f-4123-a2fd-a9c98727a9c0",
+      "invoice_id": "30e7cc9b-af99-4f14-a955-c1ad4d8528df",
       "submitted_by": "EMP1033",
       "vendor_name": "Adobe Systems India",
-      "invoice_date": "2026-07-08",
+      "invoice_date": "2026-07-13",
       "category": "travel",
       "amount": "5338.00",
       "description": "Conference attendance",
@@ -631,10 +631,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "7664a242-623f-4c00-a42d-cff5c3930819",
+      "invoice_id": "b7835e35-ebaa-4dae-91af-9775735325a2",
       "submitted_by": "EMP1043",
       "vendor_name": "Amazon Business",
-      "invoice_date": "2026-07-17",
+      "invoice_date": "2026-07-22",
       "category": "travel",
       "amount": "50000.00",
       "description": "Team offsite travel",
@@ -651,10 +651,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "bddedaa8-6421-4dbe-9803-3514f4483a0c",
+      "invoice_id": "84003a56-a6b9-4497-8026-6878587f6c33",
       "submitted_by": "EMP1043",
       "vendor_name": "Delhivery Ltd",
-      "invoice_date": "2026-08-16",
+      "invoice_date": "2026-08-21",
       "category": "software",
       "amount": "6846.00",
       "description": "Cloud storage subscription",
@@ -671,10 +671,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "3da94b98-ff10-4b87-b1ad-b32be78e03b0",
+      "invoice_id": "9e5d329d-00ac-4fc9-a3b2-9e199ad11e9f",
       "submitted_by": "EMP1029",
       "vendor_name": "ITC Hotels Business",
-      "invoice_date": "2026-06-10",
+      "invoice_date": "2026-06-15",
       "category": "consulting",
       "amount": "4931.00",
       "description": "Strategy consulting engagement",
@@ -691,10 +691,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "59476a2b-33b4-4652-b6f3-a62f6d2dd4e2",
+      "invoice_id": "1d00fdeb-1edc-45c0-835c-523493b9995b",
       "submitted_by": "EMP1015",
       "vendor_name": "Wipro Services",
-      "invoice_date": "2026-08-02",
+      "invoice_date": "2026-08-07",
       "category": "travel",
       "amount": "15403.00",
       "description": "Business travel to client site",
@@ -711,10 +711,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "17d245c3-d862-4ae5-b19f-0c75b0e3817b",
+      "invoice_id": "a06e256b-fc79-4c1d-ae55-f0fd2858f328",
       "submitted_by": "EMP1050",
       "vendor_name": "Deloitte India",
-      "invoice_date": "2026-08-01",
+      "invoice_date": "2026-08-06",
       "category": "consulting",
       "amount": "1053.00",
       "description": "Financial advisory services",
@@ -733,10 +733,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "f08152ab-c314-45e4-ba1f-0595518a0757",
+      "invoice_id": "8100cf05-2aa5-4133-9a89-0cdd93346ab5",
       "submitted_by": "EMP1043",
       "vendor_name": "Ernst & Young LLP",
-      "invoice_date": "2026-08-15",
+      "invoice_date": "2026-08-20",
       "category": "travel",
       "amount": "2572.00",
       "description": "Airport transfers and accommodation",
@@ -753,10 +753,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "672ddf83-6953-4427-8548-49c6b8a70d93",
+      "invoice_id": "433d5788-90b5-4c2c-b4d0-7dd604f40261",
       "submitted_by": "EMP1018",
       "vendor_name": "Staples India",
-      "invoice_date": "2026-08-01",
+      "invoice_date": "2026-08-06",
       "category": "supplies",
       "amount": "36788.00",
       "description": "Desk accessories and ergonomic equipment",
@@ -773,10 +773,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "784d82dd-abda-4598-933b-de2c2697ae54",
+      "invoice_id": "ed642d12-235a-464e-a746-281161670ab6",
       "submitted_by": "EMP1006",
       "vendor_name": "Allied Industries",
-      "invoice_date": "2026-07-23",
+      "invoice_date": "2026-07-28",
       "category": "consulting",
       "amount": "1824.00",
       "description": "Legal advisory services",
@@ -793,10 +793,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "7b80cad1-f995-4dfc-9a46-f1dfa69d4e49",
+      "invoice_id": "746762a2-f15b-4aa4-98c9-27ea407b94cb",
       "submitted_by": "EMP1038",
       "vendor_name": "NextGen Consulting",
-      "invoice_date": "2026-07-14",
+      "invoice_date": "2026-07-19",
       "category": "travel",
       "amount": "1808.00",
       "description": "Team offsite travel",
@@ -813,10 +813,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "cccb45bf-e332-4d5e-9bc2-4bdae62e678e",
+      "invoice_id": "9f4fe932-c3e1-46af-b913-3f74d3a1d6de",
       "submitted_by": "EMP1035",
       "vendor_name": "KPMG Advisory",
-      "invoice_date": "2026-06-25",
+      "invoice_date": "2026-06-30",
       "category": "supplies",
       "amount": "4644.00",
       "description": "Cleaning supplies for office",
@@ -833,10 +833,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "8619b058-44db-43c3-ae72-ef8544195024",
+      "invoice_id": "b2b12ef4-1aba-4f75-97f5-6e8f3a2d3dc8",
       "submitted_by": "EMP1035",
       "vendor_name": "Pinnacle Systems",
-      "invoice_date": "2026-08-16",
+      "invoice_date": "2026-08-21",
       "category": "travel",
       "amount": "3752.00",
       "description": "Business travel to client site",
@@ -853,10 +853,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "07bf2711-c710-4243-846b-4c35e25f2039",
+      "invoice_id": "cecef1c5-bbda-4428-9e3f-17b06b85329b",
       "submitted_by": "EMP1014",
       "vendor_name": "TCS Technologies",
-      "invoice_date": "2026-07-30",
+      "invoice_date": "2026-08-04",
       "category": "software",
       "amount": "2009.00",
       "description": "Security software licence",
@@ -873,10 +873,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "9225366a-113f-41dd-a2b1-2eb4f867d658",
+      "invoice_id": "4d11ae22-bc80-4bba-bbe4-ce2b4fa4b8a4",
       "submitted_by": "EMP1050",
       "vendor_name": "Zoho Corporation",
-      "invoice_date": "2026-08-04",
+      "invoice_date": "2026-08-09",
       "category": "travel",
       "amount": "33083.00",
       "description": "Conference attendance",
@@ -893,10 +893,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "17a521aa-6417-4f0a-9ded-212b5ea9dd75",
+      "invoice_id": "dde27a50-eada-49ea-87f6-a07a435fb435",
       "submitted_by": "EMP1045",
       "vendor_name": "Pinnacle Systems",
-      "invoice_date": "2026-06-08",
+      "invoice_date": "2026-06-13",
       "category": "supplies",
       "amount": "8076.00",
       "description": "Printer cartridges and paper",
@@ -915,10 +915,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "b7c91e17-2ff2-49aa-8153-adef6a6dc7b7",
+      "invoice_id": "4e3ed528-b90d-4dec-a8a9-47b0563416fa",
       "submitted_by": "EMP1013",
       "vendor_name": "Deloitte India",
-      "invoice_date": "2026-07-13",
+      "invoice_date": "2026-07-18",
       "category": "logistics",
       "amount": "20122.00",
       "description": "Warehouse storage fees",
@@ -935,10 +935,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "31a9399b-41f0-485f-82e1-019803c25dd7",
+      "invoice_id": "ad6a0609-59ea-4275-a648-d9e8e33cfcab",
       "submitted_by": "EMP1037",
       "vendor_name": "ITC Hotels Business",
-      "invoice_date": "2026-08-17",
+      "invoice_date": "2026-08-22",
       "category": "travel",
       "amount": "7947.00",
       "description": "Business travel to client site",
@@ -955,10 +955,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "e9385450-e454-4c45-bc56-011b991c27e4",
+      "invoice_id": "9f14c0ff-74ff-488e-85c6-0071c0279ab4",
       "submitted_by": "EMP1030",
       "vendor_name": "Allied Industries",
-      "invoice_date": "2026-06-12",
+      "invoice_date": "2026-06-17",
       "category": "consulting",
       "amount": "27316.00",
       "description": "HR consulting and recruitment",
@@ -975,10 +975,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "cdc35411-d6e6-4dc0-90bb-0a0ab2cd59be",
+      "invoice_id": "ff8afdf6-2e20-4863-b1bc-a1149fc108ad",
       "submitted_by": "EMP1038",
       "vendor_name": "Ernst & Young LLP",
-      "invoice_date": "2026-07-08",
+      "invoice_date": "2026-07-13",
       "category": "software",
       "amount": "935.00",
       "description": "Annual SaaS subscription renewal",
@@ -995,10 +995,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "d88c3a36-8ae6-45ad-8ff7-a624b1562362",
+      "invoice_id": "22b951ec-db6e-45f9-bd15-bb078d6b0fc2",
       "submitted_by": "EMP1021",
       "vendor_name": "Adobe Systems India",
-      "invoice_date": "2026-08-29",
+      "invoice_date": "2026-09-03",
       "category": "travel",
       "amount": "6667.00",
       "description": "Team offsite travel",
@@ -1015,10 +1015,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "6870c0b5-90a3-411c-8341-5a04a3941487",
+      "invoice_id": "236b40e9-b049-45f2-af36-f195dd89ee2e",
       "submitted_by": "EMP1006",
       "vendor_name": "SR Enterprises",
-      "invoice_date": "2026-06-27",
+      "invoice_date": "2026-07-02",
       "category": "supplies",
       "amount": "1225.00",
       "description": "Cleaning supplies for office",
@@ -1035,10 +1035,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "05875775-20c4-42dc-b15c-8bfa6d1c8356",
+      "invoice_id": "e2ad5f19-e8c2-4807-b691-dfba30eafc4b",
       "submitted_by": "EMP1038",
       "vendor_name": "Apex Trading Co",
-      "invoice_date": "2026-08-01",
+      "invoice_date": "2026-08-06",
       "category": "consulting",
       "amount": "493.00",
       "description": "HR consulting and recruitment",
@@ -1055,10 +1055,10 @@
       "ground_truth_confidence": 0.7
     },
     {
-      "invoice_id": "0bb6f852-a9b0-40e6-b38a-beb87684a878",
+      "invoice_id": "f6430cfd-700b-45cd-b558-ec7775887edf",
       "submitted_by": "EMP1049",
       "vendor_name": "Adobe Systems India",
-      "invoice_date": "2026-08-17",
+      "invoice_date": "2026-08-22",
       "category": "consulting",
       "amount": "4779.00",
       "description": "HR consulting and recruitment",
@@ -1075,10 +1075,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "14d40a81-c61a-4570-af33-6d5b1e50bc0d",
+      "invoice_id": "b4f31841-72ed-4ad6-8625-44751525f46c",
       "submitted_by": "EMP1046",
       "vendor_name": "Allied Industries",
-      "invoice_date": "2026-08-10",
+      "invoice_date": "2026-08-15",
       "category": "logistics",
       "amount": "16030.00",
       "description": "Last-mile delivery costs",
@@ -1095,10 +1095,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "cdd17755-c783-46ba-9f65-106599f28783",
+      "invoice_id": "78a1f9b7-20ec-482d-9817-9b1036eaa626",
       "submitted_by": "EMP1029",
       "vendor_name": "Taj Hotels Corporate",
-      "invoice_date": "2026-07-27",
+      "invoice_date": "2026-08-01",
       "category": "software",
       "amount": "18459.00",
       "description": "Cloud storage subscription",
@@ -1115,10 +1115,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "6e3a79bd-841c-4c8d-a147-6f001b233148",
+      "invoice_id": "ee6c284d-c316-46f4-b22f-e8ed09bd736c",
       "submitted_by": "EMP1010",
       "vendor_name": "Deloitte India",
-      "invoice_date": "2026-07-01",
+      "invoice_date": "2026-07-06",
       "category": "logistics",
       "amount": "2184.00",
       "description": "Customs and clearance charges",
@@ -1137,10 +1137,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "0499841a-0a1b-449b-b242-4567e8b38d13",
+      "invoice_id": "a1ba3b24-c750-4440-b9a7-497f566e2571",
       "submitted_by": "EMP1028",
       "vendor_name": "Ernst & Young LLP",
-      "invoice_date": "2026-07-25",
+      "invoice_date": "2026-07-30",
       "category": "software",
       "amount": "8438.00",
       "description": "Annual SaaS subscription renewal",
@@ -1157,10 +1157,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "9c6b0350-1957-4759-8068-0bd12c1f586c",
+      "invoice_id": "f76abc89-502c-43cc-8e06-6ca3cba48eb2",
       "submitted_by": "MISSING",
       "vendor_name": "Vertex Solutions",
-      "invoice_date": "2026-08-22",
+      "invoice_date": "2026-08-27",
       "category": "logistics",
       "amount": "31647.00",
       "description": "Customs and clearance charges",
@@ -1179,10 +1179,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "6151d7ad-aaa1-497d-9e50-24a3987a1e3c",
+      "invoice_id": "b8c01903-2b35-4e25-9cff-7c27a8496699",
       "submitted_by": "EMP1041",
       "vendor_name": "Flipkart Wholesale",
-      "invoice_date": "2026-07-30",
+      "invoice_date": "2026-08-04",
       "category": "travel",
       "amount": "3861.00",
       "description": "Conference attendance",
@@ -1199,10 +1199,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "3cb196c7-d331-4a18-83a7-c011ac0f22a1",
+      "invoice_id": "3c9e3471-5431-477e-a13e-c078455e8a76",
       "submitted_by": "EMP1037",
       "vendor_name": "Generic Vendor",
-      "invoice_date": "2026-07-24",
+      "invoice_date": "2026-07-29",
       "category": "logistics",
       "amount": "941.00",
       "description": "Customs and clearance charges",
@@ -1219,10 +1219,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "5bf634a7-d74a-4919-92ee-af1a3d7aaf7a",
+      "invoice_id": "62e6e495-2887-4cc9-a184-72acbdcfe519",
       "submitted_by": "EMP1002",
       "vendor_name": "QuickBill Ltd",
-      "invoice_date": "2026-07-22",
+      "invoice_date": "2026-07-27",
       "category": "logistics",
       "amount": "3897.00",
       "description": "Freight and courier charges",
@@ -1239,10 +1239,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "5c374bae-1f20-4246-81f1-515e07ea6231",
+      "invoice_id": "68ecda01-8e73-4f28-bd5b-935bb735fabb",
       "submitted_by": "EMP1042",
       "vendor_name": "SR Enterprises",
-      "invoice_date": "2026-08-10",
+      "invoice_date": "2026-08-15",
       "category": "logistics",
       "amount": "6773.00",
       "description": "Customs and clearance charges",
@@ -1259,10 +1259,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "0ada892b-8530-42cc-9182-8c0f60ae23a2",
+      "invoice_id": "7229bcaf-5b18-4eca-b9aa-165cb40d84e2",
       "submitted_by": "EMP1032",
       "vendor_name": "Innovate Corp",
-      "invoice_date": "2026-07-21",
+      "invoice_date": "2026-07-26",
       "category": "logistics",
       "amount": "2541.00",
       "description": "Freight and courier charges",
@@ -1279,10 +1279,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "4c5ccae2-dc9b-4550-8090-695822d6a5f1",
+      "invoice_id": "ea74f200-373e-4bb4-acbc-674f6c0ffdc3",
       "submitted_by": "EMP1001",
       "vendor_name": "Metro Supplies",
-      "invoice_date": "2026-07-12",
+      "invoice_date": "2026-07-17",
       "category": "consulting",
       "amount": "12369.00",
       "description": "HR consulting and recruitment",
@@ -1299,10 +1299,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "a22f5464-f12c-410a-907e-9dffb8ca4066",
+      "invoice_id": "b462f648-6b50-4074-90c5-20f47387032d",
       "submitted_by": "EMP1045",
       "vendor_name": "Innovate Corp",
-      "invoice_date": "2026-07-27",
+      "invoice_date": "2026-08-01",
       "category": "software",
       "amount": "4467.00",
       "description": "Development tool licence",
@@ -1319,10 +1319,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "62eab90f-406a-477c-a86c-48d6e2c22453",
+      "invoice_id": "68152aa2-68cf-4072-8a84-770b675317fd",
       "submitted_by": "EMP1008",
       "vendor_name": "QuickBill Ltd",
-      "invoice_date": "2026-08-21",
+      "invoice_date": "2026-08-26",
       "category": "software",
       "amount": "7713.00",
       "description": "Development tool licence",
@@ -1339,10 +1339,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "7b3aa0e2-3cbc-4eef-aef9-7ee41731e62e",
+      "invoice_id": "9cfed2cd-c1b3-4ae0-894d-84d6db45b15a",
       "submitted_by": "EMP1010",
       "vendor_name": "Blue Dart Express",
-      "invoice_date": "2026-08-01",
+      "invoice_date": "2026-08-06",
       "category": "consulting",
       "amount": "2350.00",
       "description": "Legal advisory services",
@@ -1359,10 +1359,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "337aee21-37af-4359-a17f-83cfd6cf5323",
+      "invoice_id": "549dc019-5d26-401d-b016-2193c1c950b6",
       "submitted_by": "EMP1033",
       "vendor_name": "KPMG Advisory",
-      "invoice_date": "2026-07-20",
+      "invoice_date": "2026-07-25",
       "category": "supplies",
       "amount": "6261.00",
       "description": "Cleaning supplies for office",
@@ -1379,10 +1379,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "96843e06-e39b-4570-beee-75e1b99d31a3",
+      "invoice_id": "bbd523e9-1e6a-4e1a-b535-ac7232956be8",
       "submitted_by": "EMP1013",
       "vendor_name": "Deloitte India",
-      "invoice_date": "2026-07-05",
+      "invoice_date": "2026-07-10",
       "category": "supplies",
       "amount": "2073.00",
       "description": "Desk accessories and ergonomic equipment",
@@ -1399,10 +1399,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "1d579209-37d1-4635-b6b7-ca7207bcde39",
+      "invoice_id": "f3e19ac7-4beb-4ebf-bb05-c876ef5b7c94",
       "submitted_by": "EMP1042",
       "vendor_name": "Deloitte India",
-      "invoice_date": "2026-06-09",
+      "invoice_date": "2026-06-14",
       "category": "software",
       "amount": "7441.00",
       "description": "Development tool licence",
@@ -1419,10 +1419,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "50e42cc0-79f5-4aa6-a21a-c492509860e8",
+      "invoice_id": "b6c7dc20-beb9-4558-a60f-37b473e50a90",
       "submitted_by": "EMP1042",
       "vendor_name": "FedEx India",
-      "invoice_date": "2026-07-05",
+      "invoice_date": "2026-07-10",
       "category": "consulting",
       "amount": "40472.00",
       "description": "Financial advisory services",
@@ -1441,10 +1441,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "f0ed64c4-437d-486b-b0fa-996f080e92b2",
+      "invoice_id": "3050ed69-f57e-409b-aaba-8b2c3f1ea5f2",
       "submitted_by": "EMP1041",
       "vendor_name": "Delhivery Ltd",
-      "invoice_date": "2026-07-15",
+      "invoice_date": "2026-07-20",
       "category": "software",
       "amount": "960.00",
       "description": "Cloud storage subscription",
@@ -1461,10 +1461,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "91190836-4a7f-41cb-9779-7eae4e29a988",
+      "invoice_id": "aa68c7a5-ae30-49ec-970d-f8380b2535f8",
       "submitted_by": "MISSING",
       "vendor_name": "MakeMyTrip Corporate",
-      "invoice_date": "2026-07-07",
+      "invoice_date": "2026-07-12",
       "category": "logistics",
       "amount": "3859.00",
       "description": "Warehouse storage fees",
@@ -1484,10 +1484,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "644f2837-9737-45e4-80e6-bb1a6f0731ae",
+      "invoice_id": "f62ae098-68cc-4349-b9db-234489215903",
       "submitted_by": "MISSING",
       "vendor_name": "IRCTC Rail",
-      "invoice_date": "2026-08-10",
+      "invoice_date": "2026-08-15",
       "category": "consulting",
       "amount": "8421.00",
       "description": "Financial advisory services",
@@ -1507,10 +1507,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "a355d22d-29ab-48ec-bb43-e54152519a5e",
+      "invoice_id": "5b221edd-5bcc-4a2a-ab1f-aa0335de0316",
       "submitted_by": "MISSING",
       "vendor_name": "Delhivery Ltd",
-      "invoice_date": "2026-08-12",
+      "invoice_date": "2026-08-17",
       "category": "travel",
       "amount": "504.00",
       "description": "Airport transfers and accommodation",
@@ -1522,18 +1522,18 @@
       "is_ambiguous_vendor": false,
       "has_missing_fields": true,
       "missing_field_names": [
-        "submitted_by",
-        "invoice_date"
+        "invoice_date",
+        "submitted_by"
       ],
       "ground_truth_decision": "REJECT",
       "ground_truth_reason": "ESCALATE_MISSING_FIELDS",
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "1d0e34bb-2c16-4c81-9f9d-1aab69d1a4a0",
+      "invoice_id": "a9ab1f0f-e703-4916-875f-7c0e73c4ab8b",
       "submitted_by": "EMP1037",
       "vendor_name": "Apex Trading Co",
-      "invoice_date": "2026-07-26",
+      "invoice_date": "2026-07-31",
       "category": "supplies",
       "amount": "2695.00",
       "description": "Desk accessories and ergonomic equipment",
@@ -1553,10 +1553,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "f62ffe09-8509-4cbc-ad9f-805021e3a3d0",
+      "invoice_id": "3f0b4271-4d39-46a4-a29a-73e33ba6a32d",
       "submitted_by": "EMP1017",
       "vendor_name": "Flipkart Wholesale",
-      "invoice_date": "2026-06-12",
+      "invoice_date": "2026-06-17",
       "category": "supplies",
       "amount": "15237.00",
       "description": "Office stationery and consumables",
@@ -1573,10 +1573,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "f907ce9a-60f0-4682-8a5e-c23b9edd54ff",
+      "invoice_id": "f793cc16-f24c-4040-8cdd-d19236e5d52d",
       "submitted_by": "EMP1012",
       "vendor_name": "Prime Services",
-      "invoice_date": "2026-07-22",
+      "invoice_date": "2026-07-27",
       "category": "consulting",
       "amount": "1040.00",
       "description": "HR consulting and recruitment",
@@ -1593,10 +1593,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "324876c0-a5a8-42f0-842e-68b89c23d080",
+      "invoice_id": "434d2aae-2c26-45c6-856c-51eb45f7046f",
       "submitted_by": "EMP1019",
       "vendor_name": "Staples India",
-      "invoice_date": "2026-07-02",
+      "invoice_date": "2026-07-07",
       "category": "consulting",
       "amount": "2411.00",
       "description": "Legal advisory services",
@@ -1613,10 +1613,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "dfb78324-7ebf-4d60-ad60-3d7ba31bf1f9",
+      "invoice_id": "e840ea22-b337-4fbc-9a7d-faca25272de8",
       "submitted_by": "EMP1001",
       "vendor_name": "Zoho Corporation",
-      "invoice_date": "2026-08-21",
+      "invoice_date": "2026-08-26",
       "category": "supplies",
       "amount": "50000.00",
       "description": "Desk accessories and ergonomic equipment",
@@ -1633,10 +1633,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "33f98e1b-ba13-4e4d-a1cc-069ee9b5929f",
+      "invoice_id": "886fc430-91b5-45cf-89b1-172a1a720e3e",
       "submitted_by": "EMP1002",
       "vendor_name": "MakeMyTrip Corporate",
-      "invoice_date": "2026-06-07",
+      "invoice_date": "2026-06-12",
       "category": "consulting",
       "amount": "4327.00",
       "description": "Strategy consulting engagement",
@@ -1653,10 +1653,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "6e6d5362-acba-4dcb-8bc0-5b8209ef075d",
+      "invoice_id": "067d6567-8822-4b96-a98d-47c741bc523d",
       "submitted_by": "EMP1032",
       "vendor_name": "SR Enterprises",
-      "invoice_date": "2026-08-28",
+      "invoice_date": "2026-09-02",
       "category": "software",
       "amount": "3754.00",
       "description": "Security software licence",
@@ -1673,10 +1673,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "046f6af2-8ad8-412e-8fee-f320cae0b588",
+      "invoice_id": "a4468c40-e81c-4e11-8179-eef61c0fdcaf",
       "submitted_by": "EMP1047",
       "vendor_name": "Delhivery Ltd",
-      "invoice_date": "2026-07-10",
+      "invoice_date": "2026-07-15",
       "category": "consulting",
       "amount": "1103.00",
       "description": "Financial advisory services",
@@ -1693,10 +1693,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "bbac1e10-9dcf-46ac-b770-84991f569dac",
+      "invoice_id": "f1cf5186-e398-4eea-ab01-782503f04c59",
       "submitted_by": "EMP1007",
       "vendor_name": "Pinnacle Systems",
-      "invoice_date": "2026-08-02",
+      "invoice_date": "2026-08-07",
       "category": "software",
       "amount": "4583.00",
       "description": "Cloud storage subscription",
@@ -1713,10 +1713,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "923cbe08-87ef-4e9b-8ffe-3961385338a2",
+      "invoice_id": "d7e6c98c-a31c-4900-b1da-3cb4f200986b",
       "submitted_by": "EMP1042",
       "vendor_name": "Ernst & Young LLP",
-      "invoice_date": "2026-08-21",
+      "invoice_date": "2026-08-26",
       "category": "travel",
       "amount": "46898.00",
       "description": "Conference attendance",
@@ -1733,10 +1733,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "609e3b2e-62f9-44d6-9f55-655946aa7cd6",
+      "invoice_id": "e305891b-1640-483a-8089-095e582b7621",
       "submitted_by": "EMP1039",
       "vendor_name": "Flipkart Wholesale",
-      "invoice_date": "2026-07-21",
+      "invoice_date": "2026-07-26",
       "category": "supplies",
       "amount": "14682.00",
       "description": "Printer cartridges and paper",
@@ -1753,10 +1753,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "845b3e02-1574-48da-ba09-a5457ae4459e",
+      "invoice_id": "fb7f1043-32c5-4a42-9f83-789059c4c2cd",
       "submitted_by": "EMP1009",
       "vendor_name": "MakeMyTrip Corporate",
-      "invoice_date": "2026-06-09",
+      "invoice_date": "2026-06-14",
       "category": "logistics",
       "amount": "1557.00",
       "description": "Warehouse storage fees",
@@ -1773,10 +1773,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "cc952bed-01fb-4d54-a66e-e66cbd2e16c3",
+      "invoice_id": "1587ffd1-31f8-4de8-b9de-69db44226471",
       "submitted_by": "EMP1029",
       "vendor_name": "QuickBill Ltd",
-      "invoice_date": "2026-06-26",
+      "invoice_date": "2026-07-01",
       "category": "consulting",
       "amount": "491.00",
       "description": "Legal advisory services",
@@ -1795,10 +1795,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "44de1b03-b4aa-4711-803d-a868a58edbfe",
+      "invoice_id": "5e7038d7-6baa-4850-8769-3a9f482e8113",
       "submitted_by": "EMP1002",
       "vendor_name": "FedEx India",
-      "invoice_date": "2026-07-25",
+      "invoice_date": "2026-07-30",
       "category": "logistics",
       "amount": "525.00",
       "description": "Customs and clearance charges",
@@ -1815,10 +1815,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "67e1f865-f84b-4835-bae0-f2a9958290b7",
+      "invoice_id": "2a7c9d6a-5cf1-4417-b313-482a665dc7fa",
       "submitted_by": "MISSING",
       "vendor_name": "Horizon Tech",
-      "invoice_date": "2026-08-14",
+      "invoice_date": "2026-08-19",
       "category": "software",
       "amount": "10181.00",
       "description": "Security software licence",
@@ -1830,18 +1830,18 @@
       "is_ambiguous_vendor": true,
       "has_missing_fields": true,
       "missing_field_names": [
-        "submitted_by",
-        "invoice_date"
+        "invoice_date",
+        "submitted_by"
       ],
       "ground_truth_decision": "REJECT",
       "ground_truth_reason": "ESCALATE_MISSING_FIELDS",
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "d356adcc-2d6e-46f1-bc9e-162a0afee007",
+      "invoice_id": "d8160b87-ac06-43e3-8387-daedd95ec46e",
       "submitted_by": "EMP1015",
       "vendor_name": "Delhivery Ltd",
-      "invoice_date": "2026-08-05",
+      "invoice_date": "2026-08-10",
       "category": "travel",
       "amount": "5049.00",
       "description": "Airport transfers and accommodation",
@@ -1858,10 +1858,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "274499fb-7c5a-4f54-a797-1cd50902128a",
+      "invoice_id": "c0a265cb-826c-485a-9ff6-517fddd58230",
       "submitted_by": "EMP1005",
       "vendor_name": "OYO Business Travel",
-      "invoice_date": "2026-06-06",
+      "invoice_date": "2026-06-11",
       "category": "consulting",
       "amount": "1184.00",
       "description": "Legal advisory services",
@@ -1878,10 +1878,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "9b4c74d7-f930-48ef-983d-f92a814f0439",
+      "invoice_id": "883998c7-d52d-42b6-b812-4c2649bf0da4",
       "submitted_by": "MISSING",
       "vendor_name": "Adobe Systems India",
-      "invoice_date": "2026-06-08",
+      "invoice_date": "2026-06-13",
       "category": "consulting",
       "amount": "15582.00",
       "description": "HR consulting and recruitment",
@@ -1893,18 +1893,18 @@
       "is_ambiguous_vendor": false,
       "has_missing_fields": true,
       "missing_field_names": [
-        "submitted_by",
-        "invoice_date"
+        "invoice_date",
+        "submitted_by"
       ],
       "ground_truth_decision": "REJECT",
       "ground_truth_reason": "ESCALATE_MISSING_FIELDS",
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "4c1ed321-a136-4d9c-8574-33e127ca6e7f",
+      "invoice_id": "499aca03-8ac1-4b82-89b2-29a17cd870c1",
       "submitted_by": "EMP1049",
       "vendor_name": "Zoho Corporation",
-      "invoice_date": "2026-06-22",
+      "invoice_date": "2026-06-27",
       "category": "travel",
       "amount": "15373.00",
       "description": "Business travel to client site",
@@ -1921,10 +1921,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "500124b8-989f-402a-8601-20393fe24bd6",
+      "invoice_id": "88461f52-c13a-46c5-a844-71754421572f",
       "submitted_by": "EMP1049",
       "vendor_name": "Infosys Ltd",
-      "invoice_date": "2026-08-09",
+      "invoice_date": "2026-08-14",
       "category": "software",
       "amount": "22746.00",
       "description": "Security software licence",
@@ -1941,10 +1941,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "6411d3a9-4b9f-4181-b792-73222c5120a0",
+      "invoice_id": "95fdda32-8634-4294-8db4-2cceabb5e256",
       "submitted_by": "EMP1011",
       "vendor_name": "Deloitte India",
-      "invoice_date": "2026-07-10",
+      "invoice_date": "2026-07-15",
       "category": "travel",
       "amount": "11631.00",
       "description": "Business travel to client site",
@@ -1961,10 +1961,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "fecc1867-c6f0-4373-a386-85e7b3845429",
+      "invoice_id": "89e34a09-7c4d-48bc-b1c9-bc1a3c810da2",
       "submitted_by": "MISSING",
       "vendor_name": "TCS Technologies",
-      "invoice_date": "2026-06-07",
+      "invoice_date": "2026-06-12",
       "category": "supplies",
       "amount": "5999.00",
       "description": "Office stationery and consumables",
@@ -1976,18 +1976,18 @@
       "is_ambiguous_vendor": false,
       "has_missing_fields": true,
       "missing_field_names": [
-        "submitted_by",
-        "invoice_date"
+        "invoice_date",
+        "submitted_by"
       ],
       "ground_truth_decision": "REJECT",
       "ground_truth_reason": "ESCALATE_MISSING_FIELDS",
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "9d4d6e56-459d-4d71-9f74-eeefd488a53e",
+      "invoice_id": "dc1ddffe-7373-48e9-ad7b-e3f6d0f9a108",
       "submitted_by": "EMP1039",
       "vendor_name": "Microsoft India",
-      "invoice_date": "2026-08-27",
+      "invoice_date": "2026-09-01",
       "category": "consulting",
       "amount": "3102.00",
       "description": "HR consulting and recruitment",
@@ -2004,10 +2004,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "9b5eac94-c3d3-4c35-a7c0-3d70bb6cc0c5",
+      "invoice_id": "3e991eaf-f38d-4aa1-be06-10a2ecc53d88",
       "submitted_by": "MISSING",
       "vendor_name": "KPMG Advisory",
-      "invoice_date": "2026-08-10",
+      "invoice_date": "2026-08-15",
       "category": "travel",
       "amount": "1381.00",
       "description": "Airport transfers and accommodation",
@@ -2026,10 +2026,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "3d96265a-f6d0-44e3-bd61-0c2175bee342",
+      "invoice_id": "cba3ef34-c44f-4964-8ac9-ccadd317091e",
       "submitted_by": "EMP1011",
       "vendor_name": "KPMG Advisory",
-      "invoice_date": "2026-07-26",
+      "invoice_date": "2026-07-31",
       "category": "travel",
       "amount": "19979.00",
       "description": "Team offsite travel",
@@ -2048,10 +2048,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "2b61a4fb-f4b4-40a2-9111-270c463cbdd0",
+      "invoice_id": "c07e3024-ab92-4ff0-a268-a922a36977f3",
       "submitted_by": "EMP1026",
       "vendor_name": "Horizon Tech",
-      "invoice_date": "2026-07-12",
+      "invoice_date": "2026-07-17",
       "category": "travel",
       "amount": "1813.00",
       "description": "Business travel to client site",
@@ -2068,10 +2068,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "22cd3fa0-e3af-482d-8076-e3a46c00f0f4",
+      "invoice_id": "e5b4979c-8d0c-49ae-ace3-215a8c016461",
       "submitted_by": "MISSING",
       "vendor_name": "OYO Business Travel",
-      "invoice_date": "2026-08-02",
+      "invoice_date": "2026-08-07",
       "category": "consulting",
       "amount": "8089.00",
       "description": "Financial advisory services",
@@ -2091,10 +2091,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "0a4e335b-0497-4cc3-b8be-3bbe7b109a6e",
+      "invoice_id": "00f83303-1084-427b-954a-9f26d3745d68",
       "submitted_by": "EMP1040",
       "vendor_name": "Taj Hotels Corporate",
-      "invoice_date": "2026-06-11",
+      "invoice_date": "2026-06-16",
       "category": "supplies",
       "amount": "2012.00",
       "description": "Cleaning supplies for office",
@@ -2111,10 +2111,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "2870ed3f-5eac-4423-9468-89802d2e30f0",
+      "invoice_id": "39750b09-a17f-415f-bc2a-8feaa153705a",
       "submitted_by": "EMP1042",
       "vendor_name": "QuickBill Ltd",
-      "invoice_date": "2026-07-06",
+      "invoice_date": "2026-07-11",
       "category": "software",
       "amount": "2400.00",
       "description": "Annual SaaS subscription renewal",
@@ -2134,10 +2134,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "7d59ca5b-c11d-4132-afa2-39d959f11438",
+      "invoice_id": "f3200189-989e-43e0-bc0b-f87bded548df",
       "submitted_by": "EMP1010",
       "vendor_name": "Adobe Systems India",
-      "invoice_date": "2026-06-16",
+      "invoice_date": "2026-06-21",
       "category": "consulting",
       "amount": "3436.00",
       "description": "Legal advisory services",
@@ -2154,10 +2154,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "76ee3977-cba4-48c5-a3d4-b3d73c254852",
+      "invoice_id": "d18e35a2-c4eb-493e-844a-7b1283f6e510",
       "submitted_by": "EMP1025",
       "vendor_name": "Zoho Corporation",
-      "invoice_date": "2026-07-16",
+      "invoice_date": "2026-07-21",
       "category": "travel",
       "amount": "32261.00",
       "description": "Business travel to client site",
@@ -2174,10 +2174,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "377309a0-9443-4ae0-9dfd-8142f9463381",
+      "invoice_id": "dda2bcb9-7bca-4e78-b173-9adfaa5cba4d",
       "submitted_by": "EMP1019",
       "vendor_name": "FastCash Consulting",
-      "invoice_date": "2026-06-22",
+      "invoice_date": "2026-06-27",
       "category": "supplies",
       "amount": "6065.00",
       "description": "Desk accessories and ergonomic equipment",
@@ -2194,10 +2194,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "e20064d5-2276-4605-971f-a8fc548dcc03",
+      "invoice_id": "6c5d25bc-fb72-44df-a5ed-987b5a1a249a",
       "submitted_by": "EMP1006",
       "vendor_name": "Deloitte India",
-      "invoice_date": "2026-08-16",
+      "invoice_date": "2026-08-21",
       "category": "travel",
       "amount": "17511.00",
       "description": "Business travel to client site",
@@ -2214,10 +2214,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "30d367f2-6916-4419-b5d6-9a8c9766227f",
+      "invoice_id": "a0d9b710-6183-4e71-8966-cd4d962a6208",
       "submitted_by": "EMP1014",
       "vendor_name": "Zoho Corporation",
-      "invoice_date": "2026-07-24",
+      "invoice_date": "2026-07-29",
       "category": "software",
       "amount": "3790.00",
       "description": "Annual SaaS subscription renewal",
@@ -2234,10 +2234,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "e8793dd7-037c-4e8c-8031-df18bffd553a",
+      "invoice_id": "c7c38611-b3ef-405e-b988-cec2e8aaafc2",
       "submitted_by": "EMP1050",
       "vendor_name": "FedEx India",
-      "invoice_date": "2026-08-28",
+      "invoice_date": "2026-09-02",
       "category": "travel",
       "amount": "1315.00",
       "description": "Conference attendance",
@@ -2254,10 +2254,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "0dc4b2a8-7ce9-451d-8b88-90b2238f09fc",
+      "invoice_id": "9fc035e8-3237-4650-827d-c23ecca8253c",
       "submitted_by": "MISSING",
       "vendor_name": "IRCTC Rail",
-      "invoice_date": "2026-07-07",
+      "invoice_date": "2026-07-12",
       "category": "supplies",
       "amount": "6135.00",
       "description": "Cleaning supplies for office",
@@ -2277,10 +2277,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "c751bc05-48c1-4358-b06e-4131860bc1a9",
+      "invoice_id": "a2462e3a-6cdf-4ff0-a036-1f7df531a21b",
       "submitted_by": "EMP1037",
       "vendor_name": "Amazon Business",
-      "invoice_date": "2026-07-16",
+      "invoice_date": "2026-07-21",
       "category": "travel",
       "amount": "50000.00",
       "description": "Airport transfers and accommodation",
@@ -2297,10 +2297,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "928368ac-19a8-48d2-b0da-3c9c31dcaaff",
+      "invoice_id": "d5b7b4b4-5eb1-41c0-a579-87fcf685478f",
       "submitted_by": "EMP1024",
       "vendor_name": "Tech Dynamics",
-      "invoice_date": "2026-06-16",
+      "invoice_date": "2026-06-21",
       "category": "consulting",
       "amount": "4070.00",
       "description": "Strategy consulting engagement",
@@ -2320,10 +2320,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "76e32ea2-69ba-47cd-9913-0e9f9f77edde",
+      "invoice_id": "41e32d94-130f-43ed-bd51-8316974c54b5",
       "submitted_by": "EMP1015",
       "vendor_name": "NextGen Consulting",
-      "invoice_date": "2026-08-21",
+      "invoice_date": "2026-08-26",
       "category": "travel",
       "amount": "4434.00",
       "description": "Airport transfers and accommodation",
@@ -2340,10 +2340,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "aa83064f-90d4-4817-8aea-ac9ba7ee44eb",
+      "invoice_id": "06d3607a-0276-460c-a9b5-144455342a4c",
       "submitted_by": "EMP1021",
       "vendor_name": "M/s Global Solutions",
-      "invoice_date": "2026-07-16",
+      "invoice_date": "2026-07-21",
       "category": "travel",
       "amount": "50000.00",
       "description": "Conference attendance",
@@ -2360,10 +2360,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "c4b3374b-4bac-4462-97f8-e85c2874e0e8",
+      "invoice_id": "93ac69ad-31a4-4af8-8aaa-3e8e3f4a18cf",
       "submitted_by": "EMP1006",
       "vendor_name": "Blue Dart Express",
-      "invoice_date": "2026-07-06",
+      "invoice_date": "2026-07-11",
       "category": "travel",
       "amount": "592.00",
       "description": "Airport transfers and accommodation",
@@ -2380,10 +2380,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "3f6e16c1-1109-4a20-90fe-0dfa26831fbc",
+      "invoice_id": "77f59705-7095-45db-803b-2e42ca04fb73",
       "submitted_by": "EMP1040",
       "vendor_name": "SR Enterprises",
-      "invoice_date": "2026-08-02",
+      "invoice_date": "2026-08-07",
       "category": "travel",
       "amount": "10119.00",
       "description": "Business travel to client site",
@@ -2400,10 +2400,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "acaf3061-7af1-4356-b2d3-a8d448ad4229",
+      "invoice_id": "d5f43433-57a4-4602-8605-8cce4facf483",
       "submitted_by": "EMP1012",
       "vendor_name": "NoName Supplies",
-      "invoice_date": "2026-08-02",
+      "invoice_date": "2026-08-07",
       "category": "software",
       "amount": "5367.00",
       "description": "Annual SaaS subscription renewal",
@@ -2420,10 +2420,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "6d5cb6fa-5ed9-442d-b856-b88477bd439d",
+      "invoice_id": "44702e74-acd5-48ff-897a-40125e6933a1",
       "submitted_by": "EMP1024",
       "vendor_name": "FedEx India",
-      "invoice_date": "2026-06-23",
+      "invoice_date": "2026-06-28",
       "category": "logistics",
       "amount": "2303.00",
       "description": "Warehouse storage fees",
@@ -2443,10 +2443,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "fe06f662-fa78-4cef-b49f-7aec5378a975",
+      "invoice_id": "fb6983b9-0422-40e2-b099-1a861222b72f",
       "submitted_by": "EMP1042",
       "vendor_name": "TCS Technologies",
-      "invoice_date": "2026-07-18",
+      "invoice_date": "2026-07-23",
       "category": "software",
       "amount": "8825.00",
       "description": "Security software licence",
@@ -2463,10 +2463,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "aadd699f-acaf-4357-9938-5ec9cae443d7",
+      "invoice_id": "30bdf177-41b6-41b2-9f8f-427d5cbd3e48",
       "submitted_by": "EMP1003",
       "vendor_name": "QuickBill Ltd",
-      "invoice_date": "2026-08-28",
+      "invoice_date": "2026-09-02",
       "category": "software",
       "amount": "812.00",
       "description": "Security software licence",
@@ -2483,10 +2483,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "b07f7dfa-3253-43ab-985a-b450a77f3bfd",
+      "invoice_id": "766d58f0-afbd-4791-95d4-304f028f9019",
       "submitted_by": "EMP1022",
       "vendor_name": "Allied Industries",
-      "invoice_date": "2026-08-26",
+      "invoice_date": "2026-08-31",
       "category": "logistics",
       "amount": "6340.00",
       "description": "Customs and clearance charges",
@@ -2503,10 +2503,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "df5a3f5e-18fb-4946-8e0b-8ca07e191c32",
+      "invoice_id": "eb7323fa-ae2e-4e29-87e5-0fabdd6c666c",
       "submitted_by": "EMP1032",
       "vendor_name": "Deloitte India",
-      "invoice_date": "2026-07-20",
+      "invoice_date": "2026-07-25",
       "category": "supplies",
       "amount": "50000.00",
       "description": "Desk accessories and ergonomic equipment",
@@ -2523,10 +2523,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "3a9c2859-546a-44cd-8c2a-5144e9002b9a",
+      "invoice_id": "9255d09f-59f4-46a2-b2b7-c9c152f73e56",
       "submitted_by": "EMP1006",
       "vendor_name": "Delhivery Ltd",
-      "invoice_date": "2026-07-26",
+      "invoice_date": "2026-07-31",
       "category": "supplies",
       "amount": "31352.00",
       "description": "Printer cartridges and paper",
@@ -2543,10 +2543,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "ae5bfb2f-6538-4686-a310-0a48da4c821d",
+      "invoice_id": "06344456-7184-4562-99a2-910a556a22d9",
       "submitted_by": "EMP1018",
       "vendor_name": "NoName Supplies",
-      "invoice_date": "2026-06-15",
+      "invoice_date": "2026-06-20",
       "category": "software",
       "amount": "15370.00",
       "description": "Security software licence",
@@ -2563,10 +2563,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "1bf5f922-b116-4ef8-86a3-44c3088418bf",
+      "invoice_id": "0f18cb4e-9608-4586-a22a-575c5e3c5c65",
       "submitted_by": "EMP1003",
       "vendor_name": "Horizon Tech",
-      "invoice_date": "2026-06-07",
+      "invoice_date": "2026-06-12",
       "category": "consulting",
       "amount": "1671.00",
       "description": "HR consulting and recruitment",
@@ -2583,10 +2583,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "3d23ce9a-e277-48fe-94a5-23ed771343a9",
+      "invoice_id": "9de1e38f-fb2e-455a-8b38-4493867e9283",
       "submitted_by": "EMP1049",
       "vendor_name": "Ernst & Young LLP",
-      "invoice_date": "2026-07-16",
+      "invoice_date": "2026-07-21",
       "category": "consulting",
       "amount": "364.00",
       "description": "HR consulting and recruitment",
@@ -2603,10 +2603,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "5f1ddef6-1796-4b9d-9371-788a8913d335",
+      "invoice_id": "2618c0bf-79a6-4a56-bdcb-4df5fbbe4abf",
       "submitted_by": "MISSING",
       "vendor_name": "Deloitte India",
-      "invoice_date": "2026-06-22",
+      "invoice_date": "2026-06-27",
       "category": "software",
       "amount": "33002.00",
       "description": "Security software licence",
@@ -2618,18 +2618,18 @@
       "is_ambiguous_vendor": false,
       "has_missing_fields": true,
       "missing_field_names": [
-        "submitted_by",
-        "invoice_date"
+        "invoice_date",
+        "submitted_by"
       ],
       "ground_truth_decision": "REJECT",
       "ground_truth_reason": "ESCALATE_MISSING_FIELDS",
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "8dd0aa31-37ba-4267-bdfd-45a86064a699",
+      "invoice_id": "bf3e5230-c495-4412-b7e4-37ce7ab32736",
       "submitted_by": "EMP1044",
       "vendor_name": "Generic Vendor",
-      "invoice_date": "2026-07-07",
+      "invoice_date": "2026-07-12",
       "category": "travel",
       "amount": "26552.00",
       "description": "Team offsite travel",
@@ -2646,10 +2646,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "2b3c833e-1718-479e-ad55-ca14a35fcff4",
+      "invoice_id": "e7110401-ae9a-4cee-b69e-c0bf75bef812",
       "submitted_by": "EMP1013",
       "vendor_name": "Zoho Corporation",
-      "invoice_date": "2026-06-28",
+      "invoice_date": "2026-07-03",
       "category": "supplies",
       "amount": "3269.00",
       "description": "Office stationery and consumables",
@@ -2666,10 +2666,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "9acacb35-0b8e-49b3-9986-e452f7a6ca34",
+      "invoice_id": "5f72fd37-dded-4886-8c59-1b9701718d0e",
       "submitted_by": "EMP1006",
       "vendor_name": "Delhivery Ltd",
-      "invoice_date": "2026-08-16",
+      "invoice_date": "2026-08-21",
       "category": "consulting",
       "amount": "368.00",
       "description": "Financial advisory services",
@@ -2686,10 +2686,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "16d7e50c-016e-425d-8f8b-8eb66f891e3f",
+      "invoice_id": "81b02f6c-5e25-4484-8c76-338010149a6a",
       "submitted_by": "EMP1023",
       "vendor_name": "Ernst & Young LLP",
-      "invoice_date": "2026-07-04",
+      "invoice_date": "2026-07-09",
       "category": "supplies",
       "amount": "50000.00",
       "description": "Printer cartridges and paper",
@@ -2706,10 +2706,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "91562fc3-1025-44db-980c-d066e2f40ec5",
+      "invoice_id": "203c5a01-06d3-4f23-b427-523f3d0c9029",
       "submitted_by": "EMP1020",
       "vendor_name": "TCS Technologies",
-      "invoice_date": "2026-08-17",
+      "invoice_date": "2026-08-22",
       "category": "supplies",
       "amount": "31472.00",
       "description": "Desk accessories and ergonomic equipment",
@@ -2726,10 +2726,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "fcbf90f6-67d0-4f47-8758-a0bdfaf79546",
+      "invoice_id": "9a73db9e-d241-416a-b351-a169160a417b",
       "submitted_by": "MISSING",
       "vendor_name": "Alpha Logistics",
-      "invoice_date": "2026-07-28",
+      "invoice_date": "2026-08-02",
       "category": "logistics",
       "amount": "5932.00",
       "description": "Warehouse storage fees",
@@ -2749,10 +2749,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "66ef3b24-4560-4dab-acce-fcd6ecf78cd3",
+      "invoice_id": "095453f9-d2bd-4704-af25-a69a5935b5cb",
       "submitted_by": "EMP1003",
       "vendor_name": "Adobe Systems India",
-      "invoice_date": "2026-06-21",
+      "invoice_date": "2026-06-26",
       "category": "travel",
       "amount": "11102.00",
       "description": "Airport transfers and accommodation",
@@ -2771,10 +2771,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "c1076c25-de1c-4d7f-afab-bde36dc59627",
+      "invoice_id": "c4ce3e27-adc8-4e8a-968e-259e6d9ab260",
       "submitted_by": "EMP1044",
       "vendor_name": "Microsoft India",
-      "invoice_date": "2026-07-02",
+      "invoice_date": "2026-07-07",
       "category": "software",
       "amount": "515.00",
       "description": "Development tool licence",
@@ -2791,10 +2791,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "73ae07fa-4a81-4e7e-a188-73a33847b0f3",
+      "invoice_id": "2e3b6a56-d546-443d-98e6-e23cc94f23d6",
       "submitted_by": "EMP1023",
       "vendor_name": "Apex Trading Co",
-      "invoice_date": "2026-07-23",
+      "invoice_date": "2026-07-28",
       "category": "consulting",
       "amount": "11002.00",
       "description": "Strategy consulting engagement",
@@ -2811,10 +2811,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "65368896-52d7-4f2c-8b65-51ef1db7cff6",
+      "invoice_id": "eb7201fc-b97c-462b-806f-61b02e9acb66",
       "submitted_by": "MISSING",
       "vendor_name": "Tech Dynamics",
-      "invoice_date": "2026-08-14",
+      "invoice_date": "2026-08-19",
       "category": "consulting",
       "amount": "36399.00",
       "description": "HR consulting and recruitment",
@@ -2826,18 +2826,18 @@
       "is_ambiguous_vendor": true,
       "has_missing_fields": true,
       "missing_field_names": [
-        "submitted_by",
-        "invoice_date"
+        "invoice_date",
+        "submitted_by"
       ],
       "ground_truth_decision": "REJECT",
       "ground_truth_reason": "ESCALATE_MISSING_FIELDS",
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "92931027-063c-4047-a541-41df215b591e",
+      "invoice_id": "cbb03d30-648b-4f92-bfd5-3f0434d3902c",
       "submitted_by": "MISSING",
       "vendor_name": "Blue Dart Express",
-      "invoice_date": "2026-08-30",
+      "invoice_date": "2026-09-04",
       "category": "travel",
       "amount": "28495.00",
       "description": "Airport transfers and accommodation",
@@ -2849,18 +2849,18 @@
       "is_ambiguous_vendor": false,
       "has_missing_fields": true,
       "missing_field_names": [
-        "submitted_by",
-        "invoice_date"
+        "invoice_date",
+        "submitted_by"
       ],
       "ground_truth_decision": "REJECT",
       "ground_truth_reason": "ESCALATE_MISSING_FIELDS",
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "938e1f65-ed5d-4a2c-ba2d-ad7e444f9444",
+      "invoice_id": "6e7e51bd-9b0a-4202-a78a-c144172e0bd2",
       "submitted_by": "EMP1009",
       "vendor_name": "Microsoft India",
-      "invoice_date": "2026-06-25",
+      "invoice_date": "2026-06-30",
       "category": "consulting",
       "amount": "6393.00",
       "description": "HR consulting and recruitment",
@@ -2879,10 +2879,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "05988978-8b65-4f87-8864-fef0e4cd4513",
+      "invoice_id": "0209b38e-0061-4f0c-9252-93971f64d5df",
       "submitted_by": "EMP1036",
       "vendor_name": "NextGen Consulting",
-      "invoice_date": "2026-06-29",
+      "invoice_date": "2026-07-04",
       "category": "travel",
       "amount": "2118.00",
       "description": "Business travel to client site",
@@ -2899,10 +2899,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "dd7f30d0-d303-40be-9416-521b343a48d7",
+      "invoice_id": "7f5a9bff-3237-4b6e-9ffd-11738a164238",
       "submitted_by": "EMP1049",
       "vendor_name": "Adobe Systems India",
-      "invoice_date": "2026-06-22",
+      "invoice_date": "2026-06-27",
       "category": "travel",
       "amount": "4158.00",
       "description": "Airport transfers and accommodation",
@@ -2919,10 +2919,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "683e80ac-5fd3-42df-9d5d-b04eb03b138b",
+      "invoice_id": "33e0ce9f-5dea-41e5-9f63-c132f4f2007a",
       "submitted_by": "EMP1039",
       "vendor_name": "Blue Dart Express",
-      "invoice_date": "2026-06-27",
+      "invoice_date": "2026-07-02",
       "category": "consulting",
       "amount": "483.00",
       "description": "Legal advisory services",
@@ -2939,10 +2939,10 @@
       "ground_truth_confidence": 0.7
     },
     {
-      "invoice_id": "1229b2f0-6013-450e-bfa2-e62fa09be8cd",
+      "invoice_id": "e873bd17-3c7a-4a53-9720-eff4db7ce2bf",
       "submitted_by": "EMP1037",
       "vendor_name": "FedEx India",
-      "invoice_date": "2026-06-25",
+      "invoice_date": "2026-06-30",
       "category": "consulting",
       "amount": "17307.00",
       "description": "HR consulting and recruitment",
@@ -2959,10 +2959,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "2d4096ea-85a3-4a1e-88a1-41c1aa30de2a",
+      "invoice_id": "91206fcb-d812-4ae5-9e0f-a3a5d0d1ea7a",
       "submitted_by": "EMP1039",
       "vendor_name": "Microsoft India",
-      "invoice_date": "2026-06-05",
+      "invoice_date": "2026-06-10",
       "category": "consulting",
       "amount": "1544.00",
       "description": "Legal advisory services",
@@ -2979,10 +2979,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "9c5061b6-f3cb-4f82-a974-5e6c9670aa47",
+      "invoice_id": "9571b1b5-8152-4489-8e0f-94de3d2adf2b",
       "submitted_by": "EMP1016",
       "vendor_name": "Deloitte India",
-      "invoice_date": "2026-08-14",
+      "invoice_date": "2026-08-19",
       "category": "software",
       "amount": "15943.00",
       "description": "Annual SaaS subscription renewal",
@@ -2999,10 +2999,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "bfd4da92-add4-49b5-bb9d-940116e646de",
+      "invoice_id": "2a422282-3f1f-4cf8-9f85-299c8482964a",
       "submitted_by": "EMP1033",
       "vendor_name": "KPMG Advisory",
-      "invoice_date": "2026-06-05",
+      "invoice_date": "2026-06-10",
       "category": "travel",
       "amount": "33094.00",
       "description": "Business travel to client site",
@@ -3019,10 +3019,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "405581af-afd0-46eb-b794-da98c08158c6",
+      "invoice_id": "6e94d4b5-71de-4560-8494-74f06b781cc5",
       "submitted_by": "EMP1030",
       "vendor_name": "Deloitte India",
-      "invoice_date": "2026-07-23",
+      "invoice_date": "2026-07-28",
       "category": "software",
       "amount": "92.00",
       "description": "Cloud storage subscription",
@@ -3039,10 +3039,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "bdf813a7-448d-44d7-8743-0c1211232cf0",
+      "invoice_id": "337f698c-889f-427f-ad88-c9cac38aafa7",
       "submitted_by": "EMP1020",
       "vendor_name": "Alpha Logistics",
-      "invoice_date": "2026-07-25",
+      "invoice_date": "2026-07-30",
       "category": "software",
       "amount": "1188.00",
       "description": "Security software licence",
@@ -3059,10 +3059,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "046b4deb-d54f-4969-a92f-2bbbe0477afb",
+      "invoice_id": "9f3f2a19-bd8d-4c04-8a42-ba65c5f1eab7",
       "submitted_by": "EMP1025",
       "vendor_name": "M/s Global Solutions",
-      "invoice_date": "2026-06-20",
+      "invoice_date": "2026-06-25",
       "category": "consulting",
       "amount": "50000.00",
       "description": "Legal advisory services",
@@ -3079,10 +3079,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "0e73da38-9f45-42b6-a415-69a9105a5f8a",
+      "invoice_id": "a05336e7-d8df-450b-9c0d-3ec8f36c5653",
       "submitted_by": "EMP1048",
       "vendor_name": "Zoho Corporation",
-      "invoice_date": "2026-07-07",
+      "invoice_date": "2026-07-12",
       "category": "travel",
       "amount": "2599.00",
       "description": "Team offsite travel",
@@ -3099,10 +3099,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "8220cfdf-5bfc-4374-8c58-bf4ab5d39658",
+      "invoice_id": "277a0bbe-d645-4371-a1a5-a4a9afa06c63",
       "submitted_by": "EMP1004",
       "vendor_name": "FedEx India",
-      "invoice_date": "2026-08-04",
+      "invoice_date": "2026-08-09",
       "category": "travel",
       "amount": "2898.00",
       "description": "Conference attendance",
@@ -3119,10 +3119,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "e750ba41-e884-4f50-b6f6-01d0f6520c87",
+      "invoice_id": "8b002195-cedc-49c9-806e-490c831b38ac",
       "submitted_by": "EMP1031",
       "vendor_name": "KPMG Advisory",
-      "invoice_date": "2026-06-10",
+      "invoice_date": "2026-06-15",
       "category": "travel",
       "amount": "4012.00",
       "description": "Team offsite travel",
@@ -3139,10 +3139,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "8d16ba26-75e6-47a7-b854-a71b89b57284",
+      "invoice_id": "2f3eaa8c-3c8a-45c4-981c-6aa5c5e9112f",
       "submitted_by": "EMP1012",
       "vendor_name": "Delhivery Ltd",
-      "invoice_date": "2026-08-28",
+      "invoice_date": "2026-09-02",
       "category": "consulting",
       "amount": "10628.00",
       "description": "Strategy consulting engagement",
@@ -3159,10 +3159,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "ff73ea9d-3272-4192-87a1-3774e55fad3e",
+      "invoice_id": "6ff0238c-4d06-4779-bc5f-0fc976bc6a34",
       "submitted_by": "EMP1019",
       "vendor_name": "Microsoft India",
-      "invoice_date": "2026-08-28",
+      "invoice_date": "2026-09-02",
       "category": "logistics",
       "amount": "4877.00",
       "description": "Customs and clearance charges",
@@ -3181,10 +3181,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "b74ef962-9321-4b74-a3d5-1bbdc8c30416",
+      "invoice_id": "f1488a4f-e261-454e-a642-416e9ec9a1e5",
       "submitted_by": "EMP1019",
       "vendor_name": "IRCTC Rail",
-      "invoice_date": "2026-08-31",
+      "invoice_date": "2026-09-05",
       "category": "travel",
       "amount": "2385.00",
       "description": "Airport transfers and accommodation",
@@ -3201,10 +3201,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "76c5ac3d-40b6-4af7-8bf5-165746bf26af",
+      "invoice_id": "ae1b9c6f-379a-4b34-9739-14180d5c5903",
       "submitted_by": "EMP1016",
       "vendor_name": "IRCTC Rail",
-      "invoice_date": "2026-08-15",
+      "invoice_date": "2026-08-20",
       "category": "consulting",
       "amount": "41857.00",
       "description": "HR consulting and recruitment",
@@ -3221,10 +3221,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "d151fc20-1f40-4765-9130-933367296f1b",
+      "invoice_id": "69055669-a503-4643-a943-c2b468c4263d",
       "submitted_by": "EMP1044",
       "vendor_name": "TCS Technologies",
-      "invoice_date": "2026-06-08",
+      "invoice_date": "2026-06-13",
       "category": "consulting",
       "amount": "43840.00",
       "description": "HR consulting and recruitment",
@@ -3244,10 +3244,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "e8d90218-20f1-42d2-80ae-6eb780fec8a8",
+      "invoice_id": "6f3c9871-186d-458b-b636-5be658fe79a3",
       "submitted_by": "EMP1039",
       "vendor_name": "Blue Dart Express",
-      "invoice_date": "2026-08-13",
+      "invoice_date": "2026-08-18",
       "category": "consulting",
       "amount": "7600.00",
       "description": "Financial advisory services",
@@ -3264,10 +3264,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "53c38628-9d88-4c6a-93b3-2dd35fc8183d",
+      "invoice_id": "38b5580a-8cd1-496d-8e92-79b2a9da5a7c",
       "submitted_by": "EMP1034",
       "vendor_name": "ITC Hotels Business",
-      "invoice_date": "2026-08-22",
+      "invoice_date": "2026-08-27",
       "category": "supplies",
       "amount": "18164.00",
       "description": "Office stationery and consumables",
@@ -3284,10 +3284,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "9155e183-f122-4986-9f49-cfbe4b0860bb",
+      "invoice_id": "40e3cf33-ab72-4c74-a131-fc2e6ccf920d",
       "submitted_by": "MISSING",
       "vendor_name": "Taj Hotels Corporate",
-      "invoice_date": "2026-06-25",
+      "invoice_date": "2026-06-30",
       "category": "travel",
       "amount": "935.00",
       "description": "Business travel to client site",
@@ -3299,18 +3299,18 @@
       "is_ambiguous_vendor": false,
       "has_missing_fields": true,
       "missing_field_names": [
-        "submitted_by",
-        "invoice_date"
+        "invoice_date",
+        "submitted_by"
       ],
       "ground_truth_decision": "REJECT",
       "ground_truth_reason": "ESCALATE_MISSING_FIELDS",
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "1a17f299-3628-4fe9-8e20-cfa170e6e342",
+      "invoice_id": "91797da7-6459-4f33-88fc-42058d3c43b8",
       "submitted_by": "EMP1001",
       "vendor_name": "Microsoft India",
-      "invoice_date": "2026-08-30",
+      "invoice_date": "2026-09-04",
       "category": "consulting",
       "amount": "4307.00",
       "description": "Strategy consulting engagement",
@@ -3327,10 +3327,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "b8356bd6-fdd1-4e55-b3e3-ddb4c0429708",
+      "invoice_id": "ac955934-59a0-4e94-92a8-86f6b4d40029",
       "submitted_by": "EMP1012",
       "vendor_name": "Blue Dart Express",
-      "invoice_date": "2026-08-28",
+      "invoice_date": "2026-09-02",
       "category": "consulting",
       "amount": "7481.00",
       "description": "Financial advisory services",
@@ -3347,10 +3347,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "9e162a6d-dd17-432b-ba45-2ba552eab2e4",
+      "invoice_id": "1e8da9b2-2618-4932-9ff7-434a5c3641ca",
       "submitted_by": "MISSING",
       "vendor_name": "Zoho Corporation",
-      "invoice_date": "2026-08-17",
+      "invoice_date": "2026-08-22",
       "category": "consulting",
       "amount": "2830.00",
       "description": "HR consulting and recruitment",
@@ -3370,10 +3370,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "b97e1446-3f40-474e-94dc-d338bde745bf",
+      "invoice_id": "0493179a-257c-4c7f-8298-25f76732dcb0",
       "submitted_by": "EMP1023",
       "vendor_name": "Deloitte India",
-      "invoice_date": "2026-08-03",
+      "invoice_date": "2026-08-08",
       "category": "consulting",
       "amount": "1675.00",
       "description": "Strategy consulting engagement",
@@ -3390,10 +3390,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "aa9a7074-0b38-4c8f-9a41-d5d5ce54b1ad",
+      "invoice_id": "b96b083d-876f-439a-ac2f-ea9d433463c4",
       "submitted_by": "EMP1039",
       "vendor_name": "Generic Vendor",
-      "invoice_date": "2026-08-24",
+      "invoice_date": "2026-08-29",
       "category": "supplies",
       "amount": "8704.00",
       "description": "Cleaning supplies for office",
@@ -3412,10 +3412,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "1fc420e3-9b5b-4bfb-83cd-8bf8772ca58f",
+      "invoice_id": "181574b6-328d-4847-8d5e-1796b52dd3f0",
       "submitted_by": "EMP1019",
       "vendor_name": "TCS Technologies",
-      "invoice_date": "2026-08-15",
+      "invoice_date": "2026-08-20",
       "category": "consulting",
       "amount": "453.00",
       "description": "HR consulting and recruitment",
@@ -3432,10 +3432,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "ef954566-d90f-4c14-afd9-88cd2bab0219",
+      "invoice_id": "84d6a195-e146-4b27-a522-73f8fd567ee1",
       "submitted_by": "EMP1038",
       "vendor_name": "Staples India",
-      "invoice_date": "2026-08-25",
+      "invoice_date": "2026-08-30",
       "category": "travel",
       "amount": "31936.00",
       "description": "Airport transfers and accommodation",
@@ -3452,10 +3452,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "c6d3c5d2-cb6a-4add-88a2-562f3c6f9d34",
+      "invoice_id": "0545d693-8674-4847-b39f-bb66b12718ee",
       "submitted_by": "EMP1049",
       "vendor_name": "OYO Business Travel",
-      "invoice_date": "2026-07-25",
+      "invoice_date": "2026-07-30",
       "category": "supplies",
       "amount": "5758.00",
       "description": "Printer cartridges and paper",
@@ -3472,10 +3472,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "aaf6a465-cd38-4213-96a6-487479db0e49",
+      "invoice_id": "d2c6e666-b0f7-41bb-a5ee-1b24d86e4f75",
       "submitted_by": "EMP1014",
       "vendor_name": "OYO Business Travel",
-      "invoice_date": "2026-07-14",
+      "invoice_date": "2026-07-19",
       "category": "supplies",
       "amount": "284.00",
       "description": "Desk accessories and ergonomic equipment",
@@ -3492,10 +3492,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "820ddfde-1ded-45c6-860a-d733bd6a2576",
+      "invoice_id": "036ecd5e-5907-42ad-a6ec-c2c730e237fa",
       "submitted_by": "EMP1039",
       "vendor_name": "Prime Services",
-      "invoice_date": "2026-07-15",
+      "invoice_date": "2026-07-20",
       "category": "travel",
       "amount": "1804.00",
       "description": "Conference attendance",
@@ -3512,10 +3512,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "cd9f950b-646e-423e-8d25-28d566a3e68e",
+      "invoice_id": "c2b14178-3815-4b4a-8392-5b7aa0b9c2a6",
       "submitted_by": "EMP1049",
       "vendor_name": "Generic Vendor",
-      "invoice_date": "2026-08-17",
+      "invoice_date": "2026-08-22",
       "category": "consulting",
       "amount": "1307.00",
       "description": "Legal advisory services",
@@ -3532,10 +3532,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "d8e4614f-d6ac-471f-bc9f-c1c9c9d3f23c",
+      "invoice_id": "397bb0bb-4916-404a-b5ee-841129cd561d",
       "submitted_by": "EMP1042",
       "vendor_name": "Prime Services",
-      "invoice_date": "2026-07-15",
+      "invoice_date": "2026-07-20",
       "category": "consulting",
       "amount": "50000.00",
       "description": "Financial advisory services",
@@ -3552,10 +3552,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "d26374c7-1996-4d19-992d-d203fbc9754c",
+      "invoice_id": "10593bbf-ed36-427d-9bc2-fc05abb84eaa",
       "submitted_by": "EMP1037",
       "vendor_name": "Zoho Corporation",
-      "invoice_date": "2026-07-23",
+      "invoice_date": "2026-07-28",
       "category": "travel",
       "amount": "577.00",
       "description": "Airport transfers and accommodation",
@@ -3572,10 +3572,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "6fef7c87-fc12-4444-86d9-a6544ad6e719",
+      "invoice_id": "3f0f0d02-fc2e-479d-9fa9-bfe9c76a86f7",
       "submitted_by": "EMP1042",
       "vendor_name": "Horizon Tech",
-      "invoice_date": "2026-08-01",
+      "invoice_date": "2026-08-06",
       "category": "travel",
       "amount": "10656.00",
       "description": "Airport transfers and accommodation",
@@ -3592,10 +3592,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "8e0ea464-d64b-4551-9001-009711899d69",
+      "invoice_id": "e007ca5c-662f-43fa-8aad-212b2432b9a5",
       "submitted_by": "EMP1032",
       "vendor_name": "IRCTC Rail",
-      "invoice_date": "2026-08-15",
+      "invoice_date": "2026-08-20",
       "category": "logistics",
       "amount": "3017.00",
       "description": "Freight and courier charges",
@@ -3612,10 +3612,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "456a6a48-ede6-4594-86e1-17ec7816e305",
+      "invoice_id": "5f0659d8-6925-4f47-ad71-278381366dd5",
       "submitted_by": "EMP1041",
       "vendor_name": "FastCash Consulting",
-      "invoice_date": "2026-09-01",
+      "invoice_date": "2026-09-06",
       "category": "consulting",
       "amount": "6950.00",
       "description": "Strategy consulting engagement",
@@ -3632,10 +3632,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "9d4e6c90-46ae-4aff-a3df-4f8d6499f589",
+      "invoice_id": "7cddc24a-a403-4f19-87ea-94f0cf65e3da",
       "submitted_by": "EMP1001",
       "vendor_name": "Blue Dart Express",
-      "invoice_date": "2026-06-09",
+      "invoice_date": "2026-06-14",
       "category": "travel",
       "amount": "37068.00",
       "description": "Team offsite travel",
@@ -3652,10 +3652,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "5006f8db-8aa0-491d-ac3a-89b53bb567c7",
+      "invoice_id": "2bb1eae6-7ec5-4420-a99b-c33721529eb7",
       "submitted_by": "MISSING",
       "vendor_name": "KPMG Advisory",
-      "invoice_date": "2026-08-10",
+      "invoice_date": "2026-08-15",
       "category": "consulting",
       "amount": "13185.00",
       "description": "HR consulting and recruitment",
@@ -3674,10 +3674,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "f1c4c9f3-5493-4a30-b8f4-ac7b58cebdad",
+      "invoice_id": "b25df089-cf1f-4ef6-aeec-c81214b22f3f",
       "submitted_by": "EMP1015",
       "vendor_name": "Taj Hotels Corporate",
-      "invoice_date": "2026-08-01",
+      "invoice_date": "2026-08-06",
       "category": "supplies",
       "amount": "2436.00",
       "description": "Office stationery and consumables",
@@ -3694,10 +3694,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "1fb8b34e-4141-4b60-8b0d-e199ac4fe641",
+      "invoice_id": "94b459c0-18ab-4623-b0f9-0312bc027db5",
       "submitted_by": "EMP1032",
       "vendor_name": "TCS Technologies",
-      "invoice_date": "2026-06-12",
+      "invoice_date": "2026-06-17",
       "category": "travel",
       "amount": "14158.00",
       "description": "Business travel to client site",
@@ -3716,10 +3716,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "1bb53da1-055a-43cb-9afb-6a3d6d971141",
+      "invoice_id": "0f6b99a2-28bc-4b60-9d97-4f6c448e144c",
       "submitted_by": "EMP1018",
       "vendor_name": "Blue Ocean Tech",
-      "invoice_date": "2026-08-23",
+      "invoice_date": "2026-08-28",
       "category": "travel",
       "amount": "3653.00",
       "description": "Conference attendance",
@@ -3736,10 +3736,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "f8658b59-ebfe-4517-b3ef-11d200f7dcc9",
+      "invoice_id": "0ea8f04d-1659-401e-89ee-c8481d73acc2",
       "submitted_by": "EMP1046",
       "vendor_name": "Taj Hotels Corporate",
-      "invoice_date": "2026-08-14",
+      "invoice_date": "2026-08-19",
       "category": "logistics",
       "amount": "1377.00",
       "description": "Customs and clearance charges",
@@ -3756,10 +3756,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "b53e3151-9100-4a6e-ab23-8e36c2cc300f",
+      "invoice_id": "7a274aa3-a99d-4fac-af95-a851f3dd4eb2",
       "submitted_by": "EMP1023",
       "vendor_name": "Wipro Services",
-      "invoice_date": "2026-06-29",
+      "invoice_date": "2026-07-04",
       "category": "software",
       "amount": "1353.00",
       "description": "Security software licence",
@@ -3776,10 +3776,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "cbf9c7b5-e007-4a12-b2ca-2e0a4654ddb5",
+      "invoice_id": "7e883d1e-7cbb-4c91-825c-24478dc60cb0",
       "submitted_by": "EMP1036",
       "vendor_name": "Ernst & Young LLP",
-      "invoice_date": "2026-07-01",
+      "invoice_date": "2026-07-06",
       "category": "logistics",
       "amount": "27505.00",
       "description": "Customs and clearance charges",
@@ -3796,10 +3796,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "f2537c26-65fa-42cd-b154-1fc8e64ed7bd",
+      "invoice_id": "ac033e22-ce78-4fe3-afca-7c38eca29332",
       "submitted_by": "EMP1041",
       "vendor_name": "Innovate Corp",
-      "invoice_date": "2026-07-15",
+      "invoice_date": "2026-07-20",
       "category": "travel",
       "amount": "12221.00",
       "description": "Business travel to client site",
@@ -3816,10 +3816,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "c24f6c2a-4886-48fa-9465-414f597ccb5e",
+      "invoice_id": "cf177fac-6caa-4e3e-919d-489f07ada846",
       "submitted_by": "MISSING",
       "vendor_name": "MakeMyTrip Corporate",
-      "invoice_date": "2026-08-16",
+      "invoice_date": "2026-08-21",
       "category": "logistics",
       "amount": "933.00",
       "description": "Last-mile delivery costs",
@@ -3831,18 +3831,18 @@
       "is_ambiguous_vendor": false,
       "has_missing_fields": true,
       "missing_field_names": [
-        "submitted_by",
-        "invoice_date"
+        "invoice_date",
+        "submitted_by"
       ],
       "ground_truth_decision": "REJECT",
       "ground_truth_reason": "ESCALATE_MISSING_FIELDS",
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "614c6cc3-1788-4106-8434-7712c8a267a6",
+      "invoice_id": "73b03695-e006-4e40-9aa1-6bf762638c16",
       "submitted_by": "EMP1016",
       "vendor_name": "Wipro Services",
-      "invoice_date": "2026-06-22",
+      "invoice_date": "2026-06-27",
       "category": "supplies",
       "amount": "501.00",
       "description": "Printer cartridges and paper",
@@ -3859,10 +3859,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "d5606ff4-dcec-4a8b-b793-85896a2eae25",
+      "invoice_id": "56a1eb5e-d068-4678-bb7f-170eb2e30c5d",
       "submitted_by": "EMP1024",
       "vendor_name": "Prime Services",
-      "invoice_date": "2026-07-02",
+      "invoice_date": "2026-07-07",
       "category": "travel",
       "amount": "10703.00",
       "description": "Airport transfers and accommodation",
@@ -3879,10 +3879,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "8b6eded2-202a-44c4-88e2-9338f97fb76a",
+      "invoice_id": "1c4e0539-e5cd-4431-bad7-8f53377b14d2",
       "submitted_by": "EMP1022",
       "vendor_name": "Prime Services",
-      "invoice_date": "2026-09-01",
+      "invoice_date": "2026-09-06",
       "category": "consulting",
       "amount": "12384.00",
       "description": "HR consulting and recruitment",
@@ -3899,10 +3899,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "96fafb1f-df6f-41e6-a3a6-22a0c3a41ee5",
+      "invoice_id": "e56eabc2-663e-4451-9442-a4119f184e83",
       "submitted_by": "EMP1045",
       "vendor_name": "Microsoft India",
-      "invoice_date": "2026-07-22",
+      "invoice_date": "2026-07-27",
       "category": "consulting",
       "amount": "15381.00",
       "description": "HR consulting and recruitment",
@@ -3919,10 +3919,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "e6cfeb99-3b1a-4d52-9e87-7c733e09d6be",
+      "invoice_id": "83896791-63ed-43ef-80e1-1ad2bb3d2e28",
       "submitted_by": "EMP1026",
       "vendor_name": "Flipkart Wholesale",
-      "invoice_date": "2026-07-22",
+      "invoice_date": "2026-07-27",
       "category": "software",
       "amount": "1225.00",
       "description": "Development tool licence",
@@ -3939,10 +3939,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "0f3483b9-f7d0-40c2-a22e-f2437c764bed",
+      "invoice_id": "8fa7b38b-f565-44af-97dc-a142b79d9d25",
       "submitted_by": "EMP1019",
       "vendor_name": "Ernst & Young LLP",
-      "invoice_date": "2026-06-03",
+      "invoice_date": "2026-06-08",
       "category": "consulting",
       "amount": "3349.00",
       "description": "Legal advisory services",
@@ -3959,10 +3959,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "bca161c8-1a23-4275-8b56-e61d9cb6cb78",
+      "invoice_id": "a857af2b-0a73-446e-8b36-1fe15ae6f24d",
       "submitted_by": "MISSING",
       "vendor_name": "KPMG Advisory",
-      "invoice_date": "2026-07-15",
+      "invoice_date": "2026-07-20",
       "category": "software",
       "amount": "1488.00",
       "description": "Annual SaaS subscription renewal",
@@ -3974,18 +3974,18 @@
       "is_ambiguous_vendor": false,
       "has_missing_fields": true,
       "missing_field_names": [
-        "submitted_by",
-        "invoice_date"
+        "invoice_date",
+        "submitted_by"
       ],
       "ground_truth_decision": "REJECT",
       "ground_truth_reason": "ESCALATE_MISSING_FIELDS",
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "7c15aa98-db00-4079-80fa-8c38a04b0db2",
+      "invoice_id": "62fc87c4-0790-4121-98d0-1045947c1c54",
       "submitted_by": "EMP1026",
       "vendor_name": "Taj Hotels Corporate",
-      "invoice_date": "2026-06-11",
+      "invoice_date": "2026-06-16",
       "category": "travel",
       "amount": "4444.00",
       "description": "Conference attendance",
@@ -4002,10 +4002,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "6a3ed0d9-48aa-49f5-b4f0-cb36bdf35be6",
+      "invoice_id": "2283fa22-ce7d-4f5e-8aea-5bf3d28dd0be",
       "submitted_by": "EMP1026",
       "vendor_name": "Taj Hotels Corporate",
-      "invoice_date": "2026-08-04",
+      "invoice_date": "2026-08-09",
       "category": "consulting",
       "amount": "3380.00",
       "description": "Legal advisory services",
@@ -4022,10 +4022,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "47b36a25-b1ca-45da-b8e5-b37da450509a",
+      "invoice_id": "59b5f843-fd4b-4a40-b897-fc0e158f395d",
       "submitted_by": "EMP1020",
       "vendor_name": "Blue Ocean Tech",
-      "invoice_date": "2026-08-22",
+      "invoice_date": "2026-08-27",
       "category": "consulting",
       "amount": "481.00",
       "description": "Financial advisory services",
@@ -4044,10 +4044,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "de55f5b7-4630-4e74-b9df-cb56d7a60b4b",
+      "invoice_id": "c0050d48-9055-4235-9155-e62579fe4045",
       "submitted_by": "MISSING",
       "vendor_name": "FastCash Consulting",
-      "invoice_date": "2026-06-03",
+      "invoice_date": "2026-06-08",
       "category": "consulting",
       "amount": "5167.00",
       "description": "HR consulting and recruitment",
@@ -4067,10 +4067,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "ec8a3d26-0a2d-4150-b56c-bbec9bff9c52",
+      "invoice_id": "f6132424-6d57-468e-9f92-3da1c0a87e30",
       "submitted_by": "EMP1041",
       "vendor_name": "NextGen Consulting",
-      "invoice_date": "2026-06-13",
+      "invoice_date": "2026-06-18",
       "category": "consulting",
       "amount": "1628.00",
       "description": "Financial advisory services",
@@ -4087,10 +4087,10 @@
       "ground_truth_confidence": 1.0
     },
     {
-      "invoice_id": "ebd7f5b6-b387-4ca9-abd4-26fa8f8209cc",
+      "invoice_id": "7f0b2153-ce94-43b8-b871-730795d5b776",
       "submitted_by": "EMP1021",
       "vendor_name": "Wipro Services",
-      "invoice_date": "2026-06-20",
+      "invoice_date": "2026-06-25",
       "category": "consulting",
       "amount": "5179.00",
       "description": "HR consulting and recruitment",

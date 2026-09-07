@@ -43,7 +43,9 @@ from rich.console import Console
 from rich.table import Table
 from rich import print as rprint
 
-from simulator.constants import DEFAULT_API_BASE_URL, DEFAULT_SEED
+from shared.constants import AUTONOMY_FLOOR
+from shared.enums import Action
+from simulator.constants import DEFAULT_API_BASE_URL, DEFAULT_SEED, PHASE_ERROR_RATES
 from simulator.models import Invoice, SimulationPhase, SimulationRunConfig
 from simulator.distributions import get_params
 from simulator.generator import InvoiceGenerator
@@ -81,10 +83,12 @@ def generate(
     gen = InvoiceGenerator(seed=seed, params=params, phase=phase)
     invoices = gen.generate(count)
 
-    # Count decision distribution
-    decisions: dict[str, int] = {"approve": 0, "reject": 0, "escalate": 0}
+    # Count decision distribution. Ground truth is APPROVE or REJECT only (CR-1),
+    # and Action's values are upper-case, so key the counter off the enum itself.
+    decisions: dict[str, int] = {Action.APPROVE.value: 0, Action.REJECT.value: 0}
     for inv in invoices:
-        decisions[inv.ground_truth_decision.value] += 1
+        if inv.ground_truth_decision is not None:
+            decisions[inv.ground_truth_decision.value] += 1
 
     # Write fixture
     data = [inv.model_dump(mode="json") for inv in invoices]
@@ -94,10 +98,10 @@ def generate(
         encoding="utf-8",
     )
 
-    console.print(f"[bold]✓[/] Written to [underline]{out_file}[/]")
+    console.print(f"[bold][OK][/] Written to [underline]{out_file}[/]")
 
     # Summary table
-    t = Table(title=f"Ground Truth Distribution — {phase.value}")
+    t = Table(title=f"Ground Truth Distribution - {phase.value}")
     t.add_column("Decision", style="cyan")
     t.add_column("Count", justify="right")
     t.add_column("Pct", justify="right")
@@ -116,15 +120,39 @@ def run(
     agent_type: str = typer.Option("scripted", "--agent", help="Agent type: scripted"),
     count: int = typer.Option(100, help="Number of invoices to process"),
     seed: int = typer.Option(DEFAULT_SEED, help="Random seed"),
+    agent_id: str = typer.Option(
+        "scripted-agent-001", "--agent-id",
+        help="Agent id to run as / submit decisions for. Must be a real agent on "
+             "the backend when --submit is used (e.g. agent-01).",
+    ),
+    limit: int = typer.Option(
+        AUTONOMY_FLOOR, "--limit",
+        help="The agent's current autonomy limit (rupees). It approves within this "
+             "and escalates above it. Set this to the agent's real backend limit so "
+             "escalation volume drops as the agent earns higher rungs.",
+    ),
+    error_rate: Optional[float] = typer.Option(
+        None, "--error-rate",
+        help="Fraction of decisions the agent gets deliberately wrong (0.0-1.0). "
+             "Defaults to the phase's rate from PHASE_ERROR_RATES: "
+             "good=0.05, degraded=0.30, recovery=0.10.",
+    ),
     api_url: str = typer.Option(DEFAULT_API_BASE_URL, help="Backend API base URL"),
     submit: bool = typer.Option(False, "--submit/--no-submit", help="Submit invoices to backend API"),
     fixture: Optional[Path] = typer.Option(None, help="Load invoices from fixture file instead of generating"),
 ) -> None:
     """Run an agent over invoices and report accuracy metrics."""
 
+    # A phase's error rate is the default; --error-rate overrides it explicitly.
+    if error_rate is None:
+        error_rate = PHASE_ERROR_RATES.get(phase.value, 0.05)
+
     # Build agent
-    agent = _build_agent(agent_type)
-    console.print(f"[bold]Agent:[/] {agent.name}")
+    agent = _build_agent(agent_type, agent_id, limit, error_rate)
+    console.print(
+        f"[bold]Agent:[/] {agent.name}  "
+        f"[dim](limit=INR {limit}, error_rate={error_rate:.0%})[/]"
+    )
 
     # Load or generate invoices
     if fixture and fixture.exists():
@@ -143,7 +171,7 @@ def run(
         invoice_count=len(invoices),
         seed=seed,
         agent_type=agent_type,
-        agent_id=agent.agent_id,
+        agent_id=agent_id,
         api_base_url=api_url,
     )
 
@@ -162,6 +190,28 @@ def run(
 
     # Report
     _print_result(result)
+
+
+# ---------------------------------------------------------------------------
+# arc — the ten-beat demo
+# ---------------------------------------------------------------------------
+
+@app.command()
+def arc(
+    agent_id: str = typer.Option("agent-01", "--agent-id", help="Agent id to run the arc as"),
+    seed: int = typer.Option(DEFAULT_SEED, help="Random seed — same seed reproduces the arc exactly"),
+    count: int = typer.Option(200, help="Invoices per phase"),
+    auto_approve: bool = typer.Option(
+        True, "--auto-approve/--wait-for-human",
+        help="Auto-approve increases (unattended demo) or pause for a human to approve.",
+    ),
+) -> None:
+    """Run the full ten-beat demo arc: climb, collapse, clawback, recover."""
+    from simulator.arc import ArcRunner
+
+    ArcRunner(
+        agent_id=agent_id, seed=seed, count=count, auto_approve=auto_approve
+    ).run()
 
 
 # ---------------------------------------------------------------------------
@@ -188,12 +238,12 @@ def validate(
             errors.append(f"Invoice {i}: {exc}")
 
     if errors:
-        console.print(f"[red]Validation FAILED — {len(errors)} errors:[/]")
+        console.print(f"[red]Validation FAILED - {len(errors)} errors:[/]")
         for e in errors[:10]:
-            console.print(f"  • {e}")
+            console.print(f"  - {e}")
         raise typer.Exit(1)
 
-    console.print(f"[bold green]✓ Valid[/] — {len(invoices_data)} invoices all pass schema validation")
+    console.print(f"[bold green][OK] Valid[/] - {len(invoices_data)} invoices all pass schema validation")
 
 
 # ---------------------------------------------------------------------------
@@ -261,30 +311,34 @@ def smoke_test(
 
     good_acc = results["good"].accuracy or 0
     if good_acc > 0.95:
-        console.print("\n[yellow]⚠ Good-phase accuracy is too high (>95 %). "
+        console.print("\n[yellow][WARN] Good-phase accuracy is too high (>95 %). "
                       "Increase degraded knobs or reduce good-phase amount margins.[/]")
     elif good_acc < 0.80:
-        console.print("\n[yellow]⚠ Good-phase accuracy is too low (<80 %). "
+        console.print("\n[yellow][WARN] Good-phase accuracy is too low (<80 %). "
                       "Simplify good-phase invoices.[/]")
     else:
-        console.print("\n[bold green]✓ Error rates look good for a convincing demo.[/]")
+        console.print("\n[bold green][OK] Error rates look good for a convincing demo.[/]")
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _build_agent(agent_type: str):
+def _build_agent(agent_type: str, agent_id: str = "scripted-agent-001",
+                 current_limit: int = AUTONOMY_FLOOR,
+                 error_rate: float = 0.05):
     if agent_type == "scripted":
         from simulator.agents.scripted import ScriptedAgent
-        return ScriptedAgent()
+        return ScriptedAgent(
+            agent_id=agent_id, current_limit=current_limit, error_rate=error_rate
+        )
     else:
         console.print(f"[red]Unknown agent type: {agent_type!r}. Choose 'scripted'.[/]")
         raise typer.Exit(1)
 
 
 def _print_result(result) -> None:
-    t = Table(title=f"Simulation Result — {result.config.phase.value}")
+    t = Table(title=f"Simulation Result - {result.config.phase.value}")
     t.add_column("Metric", style="cyan")
     t.add_column("Value", justify="right")
     t.add_row("Total invoices", str(result.total_invoices))
@@ -292,8 +346,8 @@ def _print_result(result) -> None:
     t.add_row("Rejected",       str(result.rejected_count))
     t.add_row("Escalated",      str(result.escalated_count))
     t.add_row("Correct decisions", str(result.correct_decisions))
-    t.add_row("Accuracy",          f"{result.accuracy:.1%}" if result.accuracy else "—")
-    t.add_row("Wilson LB (95%)",   f"{result.wilson_lower_bound:.1%}" if result.wilson_lower_bound else "—")
+    t.add_row("Accuracy",          f"{result.accuracy:.1%}" if result.accuracy else "-")
+    t.add_row("Wilson LB (95%)",   f"{result.wilson_lower_bound:.1%}" if result.wilson_lower_bound else "-")
     t.add_row("LLM calls",         str(result.llm_calls))
     t.add_row("Cache hits",        str(result.cache_hits))
     t.add_row("Errors",            str(len(result.errors)))
@@ -302,7 +356,7 @@ def _print_result(result) -> None:
     if result.errors:
         console.print("[red]Errors:[/]")
         for e in result.errors[:5]:
-            console.print(f"  • {e}")
+            console.print(f"  - {e}")
 
 
 if __name__ == "__main__":

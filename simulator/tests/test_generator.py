@@ -254,9 +254,8 @@ class TestDistributionProperties:
         categories = {inv.category.value for inv in baseline_invoices}
         assert categories == {"travel", "supplies", "software", "consulting", "logistics"}
 
-    def test_ground_truth_decisions_include_all_three(self, baseline_invoices):
-        """A batch of 100 baseline invoices should include approve, reject, and escalate."""
+    def test_ground_truth_decisions_include_approve_and_reject(self, baseline_invoices):
+        """A batch of baseline invoices should include both APPROVE and REJECT answers."""
         decisions = {inv.ground_truth_decision for inv in baseline_invoices}
-        # At least approve and escalate should appear; reject might not on small samples
         assert Action.APPROVE in decisions
-        assert Action.ESCALATE in decisions
+        assert Action.REJECT in decisions

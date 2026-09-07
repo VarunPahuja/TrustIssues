@@ -208,6 +208,21 @@ walkthrough are back; verified in `docs/audits/2026-08-27-delta-audit.md` §1
 and the PR that carries this entry. `docs/RISKS.md`/`docs/CONTEXT.md`'s own
 staleness (unrelated to this gap) is not addressed here.
 
+**2026-08-26 — Utkarsh (via `uk/autonomy-ladder`, PR #7)** — Landed the autonomy
+ladder and the `evaluate(decisions, context) -> TrustEvaluation` orchestrator —
+the single function the backend calls. Retired the lane-local `ScoreResult`
+dataclass; `compute_trust_score()` now returns a plain tuple and
+`TrustEvaluation` is `trust/`'s only public result type. The ladder implements
+the documented split between `eligible_for_increase` (evidence supports a raise)
+and `direction` (a cooldown or post-clawback recovery window can still hold it
+at `HOLD`), plus clawback-first evaluation that drops exactly one rung on
+confirmed or critical drift with no cooldown of its own. 15 of the 18 scoped
+reason codes are reachable and individually tested; the 3 audit-sample /
+recommendation-clamping codes are out of this lane's scope (they belong to
+`backend/` or a future audit-sampling module — flagged for Varun P.). 174 trust
+tests pass. **Affects:** `trust/` only. No new ADR — implements decisions
+already recorded in ADR-0002 / 0004 / 0006 / 0007.
+
 **2026-08-24 — Varun C. (via `vc/langgraph-skeleton`)** — Set governance's
 default mode to `stub`, not `cached`. `resolve_mode()` raises `ValueError` on
 an unrecognised mode rather than falling back. **Why:** an unset
