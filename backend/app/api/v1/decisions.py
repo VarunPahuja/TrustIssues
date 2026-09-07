@@ -7,14 +7,14 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 from shared.enums import Action
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.v1.pagination import PageParam, PageSizeParam, paginate
-from app.deps import CurrentUserDep, DbSessionDep
-from app.errors import NOT_FOUND_RESPONSE, ApiError, not_found
+from app.deps import CurrentUserDep, DbSessionDep, require_role
+from app.errors import FORBIDDEN_RESPONSE, NOT_FOUND_RESPONSE, ApiError, not_found
 from app.models import Agent, Decision, Invoice
 from app.models.audit_log import append_entry
 from app.models.policy_versions import current_policy_version_for
@@ -23,8 +23,23 @@ from app.policy.types import Invoice as PolicyInvoice
 from app.policy.types import PolicyVersion as PolicyVersionView
 from app.schemas.decision import DecisionCreate, DecisionRecordOut
 from app.schemas.envelope import Page
+from app.schemas.user import Role
 
 router = APIRouter(prefix="/decisions", tags=["decisions"])
+
+# Was unprotected until docs/audits/2026-09-06-audit.md's RBAC pass found it
+# (item 2: "no require_role(...) dependency at all — any stub role,
+# including AUDITOR, can currently POST a decision"). Gated ADMIN, matching
+# the "operational action -> ADMIN operates the system" convention
+# `app/api/v1/simulation.py` already establishes for the same kind of
+# machine-originated, non-human-judgment action. Flagged, not just assumed:
+# the three stub roles (admin/reviewer/auditor) are all *human* dashboard
+# roles, and none of them obviously represents "the agent itself" or "the
+# simulator" submitting its own decision — ADMIN is the closest fit today
+# because the header defaults to it when absent (`app.deps.current_user`),
+# which is exactly how the simulator calls this route in practice. Revisit
+# when real agent/service credentials exist instead of a human role header.
+_admin_only = Depends(require_role(Role.ADMIN))
 
 
 def _decision_out(decision: Decision, invoice: Invoice) -> DecisionRecordOut:
@@ -186,7 +201,13 @@ def _create_decision(db: Session, body: DecisionCreate) -> Decision:
     return decision
 
 
-@router.post("", response_model=DecisionRecordOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=DecisionRecordOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[_admin_only],
+    responses=FORBIDDEN_RESPONSE,
+)
 def create_decision(
     body: DecisionCreate, user: CurrentUserDep, db: DbSessionDep
 ) -> DecisionRecordOut:
