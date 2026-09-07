@@ -6,6 +6,239 @@ ADR.
 
 ---
 
+**2026-09-07 — Varun P. (`vp/freeze-cleanup`)** — Approving a `HOLD`
+recommendation no longer resets an agent's cooldown clock. `_record_decision`
+(`backend/app/api/v1/recommendations.py`) called `apply_policy_version` on
+every `APPROVED` verdict unconditionally, including a `HOLD` recommendation
+whose `proposed_limit` already equals the agent's current limit
+(`trust/trust_engine/ladder.py`'s `HOLD` branch always returns
+`context.current_limit` unchanged) — writing a redundant `PolicyVersion` row
+with the same limit but a fresh `effective_from`. Since
+`app/services/trust.py:agent_context` derives `decisions_since_last_change`
+from the *latest* version's `effective_from`, that no-op write reset the
+cooldown clock to 0 regardless. Confirmed live: approving a rigged `HOLD`
+recommendation dropped `decisions_since_last_change` from 2 to 0 without the
+fix, and left it unchanged with it
+(`backend/tests/test_recommendations.py::test_approving_a_hold_recommendation_does_not_reset_the_cooldown_clock`).
+**Decided this was a bug, not a feature**: the cooldown
+(`COOLDOWN_BETWEEN_INCREASES`) exists specifically so a lucky streak right
+after a real promotion can't immediately trigger another one — it has no
+relationship to whether a human clicked approve on a recommendation that
+changed nothing. Resetting it on every approval, including HOLDs, meant an
+agent could be made to wait out a fresh 100-decision cooldown indefinitely if
+HOLD recommendations kept being generated and approved while it was
+otherwise fully eligible for a real increase — actively working against the
+cooldown's own stated purpose, not just redundant. Fix: only call
+`apply_policy_version` when `row.proposed_limit != agent.current_limit`.
+Approving a HOLD is still recorded (`approvals` row, `Recommendation.status`
+flips to `APPROVED`) — only the no-op policy version write is skipped. Also
+fixed a latent bug this exposed: the audit-log `event_type` was chosen from
+`policy_version_id`'s truthiness rather than `verdict` directly, which would
+have mislabelled a HOLD approval as `recommendation.rejected` in the audit
+trail now that `policy_version_id` can be `None` on a genuine approval.
+**Why:** docs/audits/2026-09-06-audit.md's freeze-cleanup item 4, read
+against `trust/trust_engine/ladder.py` and
+`backend/app/models/policy_versions.py` directly rather than guessed at.
+**Affects:** `backend/app/api/v1/recommendations.py` only — no schema
+change, no `shared/` change; `Recommendation.proposed_limit`/
+`Agent.current_limit` were already both real columns being compared, not new
+state.
+
+---
+
+**2026-09-07 — Varun P. (PR #32)** — `POST /api/v1/simulation/runs` actually
+starts a run now instead of minting a fixture and returning: it creates a
+`simulation_runs` row (`status=running`), commits it, then a
+`BackgroundTasks` job deterministically generates `invoice_count` invoices,
+runs a scripted decision over each, and submits every one through
+`app.api.v1.decisions._create_decision` directly and in-process — the same
+function the real HTTP endpoint calls, not a shortcut into the database.
+`decisions_submitted` updates after every decision so `GET
+/simulation/runs/{id}` reflects live progress; a failure mid-run marks the
+row `FAILED` with an honest short count and the error, rather than either a
+silently-short "completed" or an unhandled exception leaving the row stuck
+at `running`. Found and fixed one real bug while writing the tests: the
+background task's first draft read `app.deps`'s process-wide cached session
+maker, which silently pointed every run at the wrong database under test
+(every test overrides `get_session` per-test, not that global); fixed by
+passing the triggering request's own DB engine into the task explicitly.
+**Why:** `POST /simulation/runs` was the last major stub in the backend —
+docs/audits/2026-09-06-audit.md's finding that "the Simulation Control Room
+is fully non-functional against the real backend" (every `POST`'s `run_id`
+404s on the very next poll, forever). **Affects:** `backend/` only. Does
+**not** import `simulator/` — `app/schemas/simulation.py` already
+established "mirror by value, not import" for this exact pair of lanes, and
+`simulator/simulator/models.py`'s `Invoice.invoice_id` was, as of this PR,
+still defaulting to an unseeded `uuid4()`, which would have made this
+endpoint's required determinism impossible to guarantee. Adds migration
+0004 (`simulation_runs` table). Live-verified against real Postgres: an
+80-decision and a 2,000-decision run both completed correctly; decisions,
+trust evaluation, and the audit chain all reflect the result.
+
+---
+
+**2026-09-07 — Varun P. (PR #31)** — Fixed two concurrency races in decision
+ingest, both confirmed live under real Postgres load before and after.
+**Race 1**: `_create_decision`'s `SELECT max(sequence)` read-then-insert
+(`backend/app/api/v1/decisions.py`) raced under concurrency, colliding on
+`uq_decisions_agent_sequence` and surfacing as an unhandled 500 — measured
+at 78.4% of calls failing at 40-way concurrency before the fix, 0% after.
+Fixed with `SELECT ... FOR UPDATE` on the agent row, serializing concurrent
+decisions per agent. **Race 2**: `append_entry`'s unlocked read-then-append
+of "the latest audit-log entry" let two concurrent appends chain off the
+same predecessor with no exception — a silent fork, not a crash (59 forked
+`prev_hash` groups out of 113 rows, measured live). Fixed with a
+transaction-scoped Postgres advisory lock plus a new `audit_log.log_seq`
+column (migration 0003): the lock alone wasn't sufficient, since `ts`
+(caller-supplied wall-clock time) isn't guaranteed to match true insertion
+order under concurrency — confirmed by the fact the fix's own test still
+failed with only the lock, before `log_seq` was added. **Why:**
+docs/audits/2026-09-06-audit.md sections 1a/1b, reproduced independently
+before fixing. **Affects:** `backend/` only; no response-shape change
+(`make openapi` confirmed byte-identical output).
+
+---
+
+**2026-09-07 — Utkarsh (PR #30)** — Simulator finalized. New `simulator arc`
+command runs the full ten-beat demo story offline, in one command, no
+backend or network needed — deterministic and byte-identical across runs
+and `PYTHONHASHSEED` values. Fixed six real bugs found building it:
+accuracy was counting escalations as mistakes (the trust engine already
+doesn't); injected errors changed the ground-truth label instead of the
+agent's action; injected errors were cancelling escalations rather than
+only affecting decisions the agent was already going to act on; critical
+errors could fire in the "good" phase and stall the ladder forever;
+`--error-rate` wasn't actually wired to the phase; runs weren't tied to a
+real `--agent-id`, so every submission 404'd. Also fixed the two
+reproducibility bugs behind `simulator generate` crashing on every
+invocation (`KeyError: 'APPROVE'` from a stale lowercase/`escalate` bucket
+left over from PR #27's 2-way ground truth change; a `UnicodeEncodeError`
+under Windows `cp1252` when piped) and two subtler ones underneath that
+(unseeded `invoice_id`, hash-order-dependent `missing_field_names`).
+**Why:** the Fri 4 Sept simulator-finalized deliverable
+(`docs/DEADLINES.md`), and a bug that had left `main` unable to generate a
+fixture at all since PR #27 landed. **Affects:** `simulator/` only.
+`simulator/` still isn't in CI (a ready-to-paste block was handed to VP
+separately); ruff cleanup (82 pre-existing findings) deliberately deferred.
+
+---
+
+**2026-09-07 — Adhya (PR #29)** — Two small but real frontend fixes on top
+of PR #28. The Simulation Control Room's agent dropdown was a hardcoded
+list of three agent ids/labels; it now calls `GET /agents` and renders
+whatever agents actually exist, with loading and error states for when the
+backend isn't reachable. `Providers.tsx`'s MSW gate compared
+`NEXT_PUBLIC_MSW_ENABLED` alone; it now also requires
+`NODE_ENV === "development"`, so a production build can't accidentally ship
+with mocking on regardless of that one env var. **Why:** the simulation
+console's agent list was already wrong the moment a fourth agent existed,
+and the MSW gate was one misconfigured env var away from mocking data in
+production. **Affects:** `frontend/` only, 5 files.
+
+---
+
+**2026-09-04 — Adhya (PR #28)** — Resolved all 10 items from the 2 Sept
+frontend audit in one pass: reworked API types onto the real
+`backend/openapi.json` contracts; fixed the endpoint paths for trust
+evaluations, policy versions, recommendations, decisions, audit log, and
+simulation; split recommendation resolution into separate approve/reject
+calls with mandatory reasons (matching the real two-endpoint backend
+shape); fixed the agents-list crash caused by reading fields `AgentOut`
+doesn't have; wired the audit page to the backend's own `chain_valid`/
+`chain_verified_scope` instead of a client-side hash-chain
+reimplementation; added an application-level error boundary; added an
+ESLint v9 flat config; deleted the dead `auditApi`. **Why:**
+`docs/audits/2026-09-02-frontend-audit.md`'s 15-item punch list — most of
+it landed in this one PR. **Affects:** `frontend/` only, 14 files.
+`types/generated.ts` remains untouched and unused; the `0.85` hardcoded
+threshold in `HorizontalThresholdGauge` was not part of this PR's scope and
+is still open as of this entry.
+
+---
+
+**2026-09-02 — Adhya (PR #27)** — Two unrelated halves landed in one PR
+whose title only names the frontend half. Frontend: ported the dashboard
+onto the v1.1 contracts and the real 5-rung ladder (the PR body itself only
+documents the simulator half — see
+`docs/audits/2026-09-02-frontend-audit.md` section 1 for the gap this
+left). Simulator (CR-1/2/3/5, in scope for Adhya at the time — simulator
+ownership hadn't yet transferred to Utkarsh): the ground-truth labeller's
+Rules 1/7/8/9 changed to emit `APPROVE`/`REJECT` only, never `ESCALATE` —
+`DecisionRecord`'s ground truth is documented as always binary, and the
+database's own `CHECK` constraint already enforced this at the persistence
+boundary; `api_client.py`'s `submit_invoice()` replaced with
+`submit_decision()`, posting a flat body to `POST /api/v1/decisions`
+instead of the nonexistent `/api/v1/invoices` — this was the literal first
+break in the vertical slice per `docs/audits/2026-08-31-state-audit.md`
+section 6; removed the unused `google-generativeai`/`python-dotenv`
+dependencies and fixed stale `AgentDecisionRecord`-referencing docstrings;
+added 7 boundary-contract tests for the new payload shape. **Known,
+admitted cost, deferred**: the 2-way labeller change broke pre-existing
+tests that asserted the old 3-way `ESCALATE` behavior — fixed later in
+PR #30. **Why:** the simulator fix closed the vertical slice's first break;
+the frontend port started the 29 Aug deliverable, four days late.
+**Affects:** `frontend/` (20 files) and `simulator/` (11 files) — the
+simulator half is a legitimate, in-scope cross-directory change per
+`docs/lanes/ad.md`'s "simulator/ + frontend/ (Adhya), through the port,"
+not a boundary violation.
+
+---
+
+**2026-09-02 — Varun P. (PR #26)** — Closed the last broken hop: a
+recommendation generated through `POST /agents/{id}/recommendations`
+couldn't be approved through the API, because approve/reject still read
+from fixtures. `POST /recommendations/{id}/approve` and `/reject` now write
+a real `approvals` row and, on approve, apply the recommendation's
+already-clamped `proposed_limit` via `apply_policy_version` —
+`agents.current_limit`/`current_rung` never move any other way
+(`app/models/guards.py` enforces this independently of the route code).
+One transaction, one `audit_log` entry, ADMIN-only (403 for
+reviewer/auditor), reason required on both paths, 409 on a non-`PENDING`
+recommendation. `GET /agents/{id}/policy-versions` wired to the real table
+(the last fixture-backed route on the agents router at the time). `GET
+/audit-log` wired to the real table, recomputing the hash chain fresh on
+every call and reporting `chain_valid`/`chain_verified_scope` rather than
+just asserting immutability in a docstring. **Why:** Thu 3 Sept's approval-
+workflow deliverable (`docs/DEADLINES.md`), and the specific gap
+`docs/audits/2026-08-31-state-audit.md` named: the vertical slice broke at
+every hop past decision ingest. **Affects:** `backend/` only. Verified live
+end to end against real Postgres: decision → trust evaluation →
+recommendation → approve → agent limit 2,500 → 5,000, rung 2 → 3 →
+policy-versions (chained) → audit-log (`chain_valid: true`). Audit-samples
+list/review and simulation runs remained fixture-backed, explicitly out of
+scope here (audit-samples remains so as of this entry; simulation runs
+fixed in PR #32).
+
+---
+
+**2026-09-01 — Varun P. (PR #25)** — Wired `GET /agents/{id}/trust` and
+`POST /agents/{id}/recommendations` to the real trust engine and governance
+coordinator, and to real persistence — the first time either path called
+anything other than a fixture. Added the `recommendations.governance_mode`
+column (migration 0002; `RecommendationOut` had required it since the
+contract was written, and no column ever carried it). Fixed a foreign-key
+ordering bug that was invisible on SQLite (the test suite's database) but
+would have failed on Postgres. **Why:** the 31 Aug decision-ingest wiring
+closed the first hop of the vertical slice; this closes the next two
+(`docs/audits/2026-08-31-state-audit.md` section 6, hops 5 and 6). **Affects:**
+`backend/` only. Live-verified against real Postgres.
+
+---
+
+**2026-09-01 — Varun P. (PR #22)** — Landed PR #16 (swappable providers,
+30 Aug) and PR #21/#23 (real recordings, live mode, 1 Sept) on `main` for
+real: both had merged into intermediate governance branches that never
+reached `main` itself, so their content — the `LLMClient` protocol,
+Gemini/Claude/OpenAI clients, the provider registry, ADR-0012, 15 committed
+recordings, live mode with fallback, the `prompt_sha` staleness tripwire —
+was invisible from a clean clone of `main` until this PR. No new content of
+its own; recorded here only so `git log main` and this file agree on where
+that content actually landed. Content already described by the existing
+2026-08-30 (PR #16) and 2026-09-01 (PR #21/#23) entries below — not
+re-described here to avoid two entries disagreeing over time.
+
+---
+
 **2026-09-01 — Varun C. (PR #21 into `vc/swappable-providers`, landed on `main`
 via PR #23)** — Governance cached mode now replays real Gemini responses, and
 live mode is open. Fifteen recordings committed, keyed
@@ -75,6 +308,23 @@ isn't — which is the failure this whole lane exists to prevent. **Affects:**
 `governance/` only. `scenarios.py` imports `trust_engine.evaluate()` at dev time
 to build recording inputs; it is the lane's only trust import and is not on any
 runtime path.
+
+---
+
+**2026-08-31 — Varun P. (PR #20)** — Wired `POST /api/v1/decisions` to real
+persistence: one transaction opens the agent and its current policy
+version, runs the real Policy Engine (`evaluate_decision`), persists an
+`Invoice` (if new) and a `Decision` row referencing the policy version in
+force, and appends a hash-chained `audit_log` entry — the first time this
+endpoint did anything but mint a fixture and return. `GET /agents/{id}` and
+`GET /decisions` switched from fixtures to real queries at the same time.
+Added the tamper-detection test the audit-log hash chain was missing (a
+test that actually mutates a persisted row and recomputes, not just hashes
+from known inputs). **Why:** the Mon 31 Aug decision-ingest deliverable
+(`docs/DEADLINES.md`) — `docs/audits/2026-08-31-state-audit.md` section 6
+had identified this exact gap as the first break in the entire vertical
+slice. **Affects:** `backend/` only. Verified against real Postgres;
+`openapi.json` response shapes unchanged.
 
 ---
 

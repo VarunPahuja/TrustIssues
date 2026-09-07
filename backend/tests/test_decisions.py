@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from sqlalchemy import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -254,6 +255,41 @@ def test_unknown_agent_id_fails_cleanly_rather_than_500ing(client, admin_headers
 
 
 def test_a_failure_mid_transaction_rolls_back_everything(db_engine):
+    """Proves the whole transaction (invoice + decision + audit_log, all
+    added inside `_create_decision`) is atomic — a duplicate primary key
+    forced into the same, still-uncommitted transaction always fails at
+    commit, regardless of dialect, and nothing from that transaction
+    survives.
+
+    The colliding row is inserted via a Core `insert()`, not a second
+    `Decision(...)` ORM object sharing `decision`'s primary key: constructing
+    two different Python objects for the same identity in one session's
+    identity map makes SQLAlchemy itself warn ("New instance ... conflicts
+    with persistent instance") *before* anything reaches the database — a
+    session-bookkeeping complaint, not the database-level primary-key
+    violation this test means to force, and previously present here
+    (docs/audits/2026-09-06-audit.md, freeze-cleanup item 3). Core bypasses
+    the identity map entirely, so the only way `session.commit()` can still
+    fail is the real `uq`/primary-key constraint on `decisions.id` — the
+    property actually being tested.
+
+    The verification half only ever touches primitives captured before the
+    first session closes (`decision_id`/`invoice_id`), never the `decision`
+    ORM object itself — that object belongs to the closed, rolled-back
+    session above, and asserting through a *different*, freshly-opened
+    session is what actually proves the data is gone from the database,
+    rather than merely absent from one Python object's in-memory state.
+
+    Confirmed this test is not vacuous: temporarily removing the explicit
+    `session.rollback()` call below still passes (SQLAlchemy's own
+    `Session.close()` already discards an unflushed/failed transaction, so
+    that call is hygiene, not what this test depends on) — but temporarily
+    breaking `_create_decision` itself to commit the invoice in its own
+    early transaction (simulating a genuine atomicity regression) makes
+    this test fail, as it should. Both checked by hand while writing this;
+    neither is asserted here as permanent test code, since the second one
+    requires mutating application code to prove.
+    """
     body = DecisionCreate(
         invoice_id="inv-rollback-001",
         amount=300,
@@ -264,26 +300,27 @@ def test_a_failure_mid_transaction_rolls_back_everything(db_engine):
     )
     with Session(db_engine) as session:
         decision = _create_decision(session, body)
-        # Force a second, colliding row into the same, still-uncommitted
-        # transaction — a duplicate primary key always fails, regardless of
-        # dialect, proving the whole transaction (invoice + decision +
-        # audit_log, all added above) is atomic, not just the first insert.
-        session.add(
-            Decision(
-                id=decision.id,
-                sequence=decision.sequence + 1,
-                invoice_id=decision.invoice_id,
-                agent_id=decision.agent_id,
-                action=decision.action,
-                policy_version_id=decision.policy_version_id,
-                within_limit=True,
-                decided_at=decision.decided_at,
-            )
-        )
+        decision_id = decision.id
+        invoice_id = decision.invoice_id
+
+        # Unlike `session.add(...)`, a Core `insert()` executes immediately
+        # against the connection rather than waiting for a flush — the
+        # IntegrityError surfaces here, not at `session.commit()`.
         with pytest.raises(IntegrityError):
-            session.commit()
+            session.execute(
+                insert(Decision.__table__).values(
+                    id=decision_id,
+                    sequence=decision.sequence + 1,
+                    invoice_id=decision.invoice_id,
+                    agent_id=decision.agent_id,
+                    action=decision.action,
+                    policy_version_id=decision.policy_version_id,
+                    within_limit=True,
+                    decided_at=decision.decided_at,
+                )
+            )
         session.rollback()
 
     with Session(db_engine) as verify:
-        assert verify.get(Invoice, "inv-rollback-001") is None
-        assert verify.get(Decision, decision.id) is None
+        assert verify.get(Invoice, invoice_id) is None
+        assert verify.get(Decision, decision_id) is None

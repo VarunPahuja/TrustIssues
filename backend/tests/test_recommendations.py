@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+from shared import reason_codes
 from shared.constants import limit_of, rung_of
 from shared.contracts import Recommendation
 from shared.enums import Direction, RecommendationStatus
@@ -207,6 +208,72 @@ def test_approve_writes_a_policy_version_chained_to_the_prior_one(client, admin_
         assert newest.limit == limit_of(3)
         assert newest.rung == rung_of(limit_of(3))
         assert newest.created_by == "user-admin-01"
+
+
+def test_approving_a_hold_recommendation_does_not_reset_the_cooldown_clock(
+    client, admin_headers, db_engine
+):
+    """docs/audits/2026-09-06-audit.md freeze-cleanup item 4: approving a
+    HOLD recommendation used to write a redundant, no-op `PolicyVersion` row
+    (same limit, fresh `effective_from`) purely because `_record_decision`
+    called `apply_policy_version` on every APPROVED verdict regardless of
+    whether anything actually changed — which reset
+    `decisions_since_last_change` to 0 via `app/services/trust.py:
+    agent_context`'s derivation, even though the agent's limit never moved.
+    Rig a HOLD recommendation (`proposed_limit == agent.current_limit`,
+    exactly what `trust/trust_engine/ladder.py`'s HOLD branch always
+    produces) directly, approve it, and confirm the cooldown clock and the
+    policy-version count are both untouched.
+    """
+    with Session(db_engine) as session:
+        agent = session.get(Agent, "agent-02")
+        current_limit = agent.current_limit
+        versions_before = session.query(PolicyVersion).filter_by(agent_id="agent-02").count()
+
+    before = client.get("/api/v1/agents/agent-02", headers=admin_headers).json()
+    cooldown_before = before["context"]["decisions_since_last_change"]
+
+    trust_resp = client.get("/api/v1/agents/agent-02/trust", headers=admin_headers)
+    trust_evaluation_id = trust_resp.json()["id"]
+
+    with Session(db_engine) as session:
+        session.add(
+            RecommendationRow(
+                id="rec-hold-cooldown-test",
+                agent_id="agent-02",
+                trust_evaluation_id=trust_evaluation_id,
+                direction=Direction.HOLD,
+                proposed_limit=current_limit,
+                rationale="rigged HOLD for the cooldown-reset regression test",
+                agent_opinions=[],
+                status=RecommendationStatus.PENDING,
+                governance_mode="stub",
+                clamped=False,
+                clamped_from=None,
+                generated_at=datetime.now(UTC),
+            )
+        )
+        session.commit()
+
+    resp = client.post(
+        "/api/v1/recommendations/rec-hold-cooldown-test/approve",
+        headers=admin_headers,
+        json={"reason": "acknowledging — nothing about the limit is changing"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "APPROVED"
+
+    after = client.get("/api/v1/agents/agent-02", headers=admin_headers).json()
+    assert after["current_limit"] == current_limit
+    assert after["context"]["decisions_since_last_change"] == cooldown_before, (
+        "approving a no-op HOLD recommendation must not reset the cooldown clock"
+    )
+
+    with Session(db_engine) as session:
+        versions_after = session.query(PolicyVersion).filter_by(agent_id="agent-02").count()
+        assert versions_after == versions_before, (
+            "approving a HOLD recommendation must not write a new policy version"
+        )
 
 
 def test_reject_creates_an_approval_and_changes_nothing_else(client, admin_headers, db_engine):
@@ -441,6 +508,17 @@ def test_recommendation_above_evidence_is_clamped(client, admin_headers, monkeyp
     assert body["clamped"] is True
     assert body["clamped_from"] == 999_999
     assert body["proposed_limit"] < 999_999
+    # docs/audits/2026-09-06-audit.md 1f: RECOMMENDATION_CLAMPED was defined
+    # in shared/, exported to the frontend, and produced by nothing.
+    assert reason_codes.RECOMMENDATION_CLAMPED in body["reason_codes"]
+
+
+def test_an_unclamped_recommendation_carries_no_clamp_reason_code(client, admin_headers):
+    resp = client.post("/api/v1/agents/agent-02/recommendations", headers=admin_headers)
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["clamped"] is False
+    assert reason_codes.RECOMMENDATION_CLAMPED not in body["reason_codes"]
 
 
 def test_every_generation_appends_exactly_one_audit_entry_and_the_chain_verifies(

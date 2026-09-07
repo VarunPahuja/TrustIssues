@@ -21,6 +21,7 @@ from governance.llm.errors import GovernanceLLMError
 from governance.prompts.schema import OpinionParseError
 from shared.constants import SCHEMA_VERSION, rung_of
 from shared.enums import OpinionVerdict
+from shared.reason_codes import RECOMMENDATION_CLAMPED
 from sqlalchemy.orm import Session
 
 from app.errors import service_unavailable
@@ -40,6 +41,13 @@ def recommendation_out(row: RecommendationRow) -> RecommendationOut:
     confidence = (
         round(sum(o.confidence for o in opinions) / len(opinions), 4) if opinions else 0.0
     )
+    # `RECOMMENDATION_CLAMPED` (shared/reason_codes.py, discussed in
+    # ADR-0014) was defined, exported to the frontend, and produced by
+    # nothing — docs/audits/2026-09-06-audit.md's finding 1f. Derived here,
+    # not stored, for the same reason `has_dissent` below is: it is a pure
+    # function of `row.clamped`, so storing it separately could only ever
+    # go stale relative to the column it's derived from.
+    reason_codes = [RECOMMENDATION_CLAMPED] if row.clamped else []
     return RecommendationOut(
         recommendation_id=row.id,
         agent_id=row.agent_id,
@@ -57,6 +65,7 @@ def recommendation_out(row: RecommendationRow) -> RecommendationOut:
         generated_at=row.generated_at,
         clamped=row.clamped,
         clamped_from=row.clamped_from,
+        reason_codes=reason_codes,
     )
 
 
@@ -131,6 +140,7 @@ def generate_recommendation(db: Session, agent: Agent) -> RecommendationOut:
             "final_limit": final_limit,
             "clamped": clamped,
             "clamped_from": clamped_from,
+            "reason_codes": [RECOMMENDATION_CLAMPED] if clamped else [],
             "governance_mode": proposal.governance_mode,
             "trust_evaluation_id": trust_evaluation_id,
         },

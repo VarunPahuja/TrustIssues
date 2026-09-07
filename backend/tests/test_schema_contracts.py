@@ -157,7 +157,14 @@ def test_agent_opinion_out_mirrors_agent_opinion():
 
 def test_recommendation_out_mirrors_recommendation():
     assert_mirrors_dataclass(
-        Recommendation, RecommendationOut, rename={AgentOpinion: AgentOpinionOut}
+        Recommendation,
+        RecommendationOut,
+        rename={AgentOpinion: AgentOpinionOut},
+        # `reason_codes`: shared.contracts.Recommendation has no such field
+        # to mirror (shared/ is frozen) — see app/schemas/governance.py's
+        # docstring for why it's a backend-local addition, derived from
+        # `clamped` rather than stored.
+        extra_fields=frozenset({"reason_codes"}),
     )
 
 

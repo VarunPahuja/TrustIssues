@@ -3,9 +3,14 @@
 This is the single source of truth for the project. If you are new to the repo — a
 teammate, a mentor, a judge — start here. It is written to require zero prior
 context. For the full design, glossary, and every architectural decision
-explained, see `docs/SYSTEM-EXPLAINED.md`. Everything in this file is checked
-against the actual repo state as of **2026-08-23**; where the code doesn't yet
-match the intent, that's stated explicitly rather than glossed over.
+explained, see `docs/SYSTEM-EXPLAINED.md`. The architecture and design
+sections below (problem statement, the core design rule, the lane
+ownership table, the shared contracts) don't change as the code catches up
+to them and aren't re-dated as they're re-read. "The demo script" and
+"Current status" are re-verified against the actual repo state as of
+**2026-09-07** — where the code doesn't yet match the intent, that's stated
+explicitly rather than glossed over, the same rule this file has always
+followed, just re-applied on a later date than the last time someone did.
 
 ---
 
@@ -156,27 +161,66 @@ answer" — i.e. this field is simulator-sourced by design. How (or whether) the
 pipeline is meant to generalize to real, non-synthetic invoices — where ground
 truth isn't known at decision time — is an open question, not yet decided.
 
-## The demo script (proposed — not yet buildable)
+## The demo script
 
-None of the wiring below exists in code today (see Current Status). This is
-the intended shape of a demo once it does:
+As of **2026-09-07**, most of the wiring below exists in real code (see
+Current Status) — this is no longer aspirational for beats 1-4, 6, and 7.
+One beat is flagged below because what's built does not match this
+paragraph's own claim about it; see
+`docs/audits/2026-09-06-audit.md` section 3 for the live-verified detail
+behind every beat, not just this summary.
 
-1. Start an agent at the autonomy floor (₹500).
+1. Start an agent at the autonomy floor (₹500). **Real** — seeded agents
+   exist at the floor; `POST /api/v1/decisions` and
+   `POST /api/v1/simulation/runs` both work against a real agent row.
 2. Run the simulator against a batch of synthetic invoices; show the agent
-   deciding within its limit.
+   deciding within its limit. **Real** — `POST /api/v1/simulation/runs`
+   generates invoices, runs a scripted agent, and submits every decision
+   through the real ingest path; the Policy Engine enforces the limit on
+   each one.
 3. Show the trust score climbing as evidence accumulates, with the Wilson
-   lower bound (not the raw accuracy) driving the number — a perfect 10/10
-   should visibly *not* be treated as certainty.
-4. Show the system recommend an autonomy increase, with the reason codes that
-   justify it, and require a human click to authorize it.
+   lower bound (not the raw accuracy) driving the number. **Real** —
+   `GET /agents/{id}/trust` computes this from real persisted decisions
+   every call.
+4. Show the system recommend an autonomy increase, with the reason codes
+   that justify it, and require a human click to authorize it. **Real, with
+   a caveat**: `POST /agents/{id}/recommendations` and
+   `POST /recommendations/{id}/approve` both work against real data — but
+   no live path in this system ever populates a decision's
+   `recommended_action`/`human_ruling` (the human-review pipeline for
+   escalations doesn't exist), so `human_agreement` is permanently
+   "insufficient evidence" for any agent driven by live decisions alone.
+   That, in turn, makes the governance audit agent object on every
+   recommendation, which — per the coordinator's own dissent rule — turns
+   every otherwise-earned INCREASE into a HOLD. A clean, human-approved,
+   live-earned increase has not yet been demonstrated end to end; only
+   seed-data recommendations have been approved so far.
 5. Inject a critical error (an APPROVE that should have been a REJECT) and
    show the automatic clawback to the floor, with no human step required.
+   **The "no human step" half of this is currently false.** Drift/critical-error
+   detection and the CLAWBACK direction are real (trust engine, live-verified),
+   but applying a clawback to `agents.current_rung` goes through the exact
+   same `POST /recommendations/{id}/approve` call an INCREASE needs — there
+   is no code path anywhere that auto-applies a CLAWBACK recommendation.
+   This contradicts this file's own design rule above ("Taking autonomy
+   away... does not [require human sign-off]") and ADR-0004's title.
+   Flagged, not silently fixed here — either the code needs an auto-apply
+   path for CLAWBACK, or this rule and ADR-0004 need to say clawback is
+   human-gated too.
 6. Inject a subtler, sustained accuracy drop (not a single critical error) and
    show drift detection catch it — first as a WARNING tripwire, then
    CONFIRMED once the two-proportion z-test has enough samples to back it.
+   **Real** — live-verified: injecting critical-error decisions produced
+   `drift.severity: "CRITICAL"` and a real `CLAWBACK_CRITICAL_ERROR` reason
+   code.
 7. Walk through the audit trail: every recommendation and every autonomy
    change should be explainable via its `reason_codes`, not just "the number
-   went up."
+   went up." **Mostly real** — 16 of the 18 codes in `shared/reason_codes.py`
+   are reachable in the live system as of this branch (`RECOMMENDATION_CLAMPED`
+   was added 2026-09-07; previously 15). The remaining two —
+   `SAMPLE_EVIDENCE_INSUFFICIENT` and `SAMPLE_REVIEW_DISAGREEMENT` — stay
+   unreachable because `POST /audit-samples/{id}/review` is still a stub
+   that doesn't persist a review or feed the trust engine.
 
 ## Explicit non-goals
 
@@ -194,34 +238,30 @@ the intended shape of a demo once it does:
 
 ## Current status
 
-Reality as of **2026-08-23**, not aspiration. Full detail in
-`docs/audits/2026-08-23-state-audit.md` (and, for the simulator/frontend row
-specifically, `docs/audits/2026-08-23-port-feasibility.md`); this table is
-the summary.
+Reality as of **2026-09-07**, not aspiration — every claim in this table was
+re-verified against the code while writing it (`docs/audits/2026-09-06-audit.md`
+found the previous version of this table, still dated 2026-08-23, badly
+stale: it described backend and governance as having zero lines, and
+simulator/frontend as empty on `main`, none of which had been true for
+weeks). Full detail in that audit and in `docs/DECISION_LOG.md`'s entries
+for PRs #20 through #32; this table is the summary.
 
 | Lane | What exists on `main` | What's stubbed | What's absent |
 |---|---|---|---|
-| `shared/` (treaty files) | **Merged 2026-08-21, frozen v1.1.** All four files: enums (incl. `RecommendationStatus`, `OpinionVerdict`, `ReviewVerdict`), constants (incl. `SAMPLING_RATE_BY_RUNG`), 18 reason codes, contracts (`DecisionRecord`, `ProportionResult`, `ScoreComponent`, `AgentContext`, `DriftResult`, `TrustEvaluation`, `AgentOpinion`, `Recommendation`, `AuditSample`) | — | Nothing — this is the one lane that's actually done |
-| Trust Engine (`trust/`) | Wilson score interval, accuracy/utilization/human-agreement proportions, error breakdown, two-stage drift detection, trust-score composition with weight renormalisation — all pure functions, 113 tests (112 passing, 1 skipped for an optional dev dependency, on CI) | — | Autonomy ladder, cooldowns, and clawback logic (constants exist, e.g. `MIN_SAMPLE_FOR_INCREASE`, `COOLDOWN_BETWEEN_INCREASES`, but nothing implements them yet — due 26 Aug, on schedule); no function produces the actual `TrustEvaluation` contract type — `compute_trust_score()` still returns a different, local `ScoreResult` shape; precision/recall metrics named in the original ownership brief don't exist as functions (only `accuracy()` does) |
-| Backend (`backend/`) | Empty directory skeleton (`app/api`, `app/models`, `app/policy`, `app/services`, `app/tasks`, `app/observability`, all `__init__.py`-only) | — | Everything. Zero commits since the 17 Aug scaffold. Its 23 Aug deliverable (`backend/openapi.json`) was missed — rescheduled to 25 Aug |
-| Governance (`governance/`) | **Updated 2026-08-29.** On `main` via PRs #6 and #12: the LangGraph workflow (four agent nodes in one parallel superstep, a coordinator, `recommend()` as the whole public surface) and the prompt layer (versioned prompt files per agent, a deterministic evidence renderer, a Pydantic + Gemini-dialect schema boundary validating every model response). On `vc/gemini-client` (PR #15 open): the HTTP client, an on-disk recording store, and **working `cached` mode** — a recorded response is looked up by cache key, validated through the same parser a live response would face, and aggregated into a `Recommendation`. On `vc/swappable-providers` (PR #16, stacked on #15): **the LLM provider is a per-agent setting** — Gemini, Claude or OpenAI via `GOVERNANCE_PROVIDER` / `GOVERNANCE_PROVIDER_<AGENT>` — so the panel can run across genuinely different base models instead of four prompts against one. See ADR-0012, **which asks the team to rule on the paid-API constraint**. 193 tests, ruff clean, none touching the network or needing an optional SDK installed | `live` mode raises `NotImplementedError` naming its due date rather than silently serving stub opinions. `governance/recordings/` is empty — recording needs an API key and is a deliberate act (`python -m governance.record`), not something that happens on first run | Recording the five demo scenarios (due 30 Aug — the code is built, the recordings are not made); live mode with timeout/retry/fallback (due 3 Sept) |
-| Simulator (`simulator/` on `main`) | Empty on `main`. **~5,900 lines of real, working code exist on `origin/ad/simulator-frontend`** (97 tests green there), built against an independently-designed `shared/` incompatible with the frozen one above | — | A merge — the branch conflicts on 5 files and needs porting, not merging, per ADR-0010. Port in progress, due 27 Aug |
-| Frontend (`frontend/` on `main`) | Empty on `main`. Same branch as above has 5 working routes, a build that passes `tsc`/`npm run build`, and a chart (`AutonomyTimeline.tsx`) close to reusable as-is — but hand-written types, no `shadcn/ui`, and a leftover scaffold folder (`nexttemp/`) that breaks typecheck until removed | — | A merge, for the same reason as simulator. Frontend type/scaffold cleanup due 29 Aug |
+| `shared/` (treaty files) | **Merged 2026-08-21, frozen v1.1, unchanged since** — confirmed empty diff against every branch, including both PRs open as of this writing. All four files: enums, constants, 18 reason codes, contracts | — | Nothing — the freeze has held completely |
+| Trust Engine (`trust/`) | **Complete.** Wilson score interval, accuracy/utilization/human-agreement proportions, error breakdown, two-stage drift detection, trust-score composition, the full autonomy ladder (six increase gates, two clawback triggers, exactly one rung per evaluation), cooldowns and clawback-recovery logic — all pure functions, all 18 reason codes correctly categorized (though see the Backend row for which are actually *reachable* live). **174 tests, all passing** | — | Nothing outstanding in this lane |
+| Backend (`backend/`) | **The most complete lane.** Real persistence throughout: decision ingest (Policy Engine, hash-chained audit log), trust evaluation, governance-recommendation generation with the hard-ceiling clamp (and, as of 2026-09-07, the clamp's own reason code — `RECOMMENDATION_CLAMPED` — is finally emitted, not just defined), human approve/reject with real `policy_versions` writes, and `POST /simulation/runs` actually starts and runs a simulation rather than minting a fixture. Two concurrency races found live under real Postgres load were fixed (an agent-row lock for the decision-sequence race, an advisory lock plus a new ordering column for a silent audit-chain fork). RBAC is real (not a stub-in-name-only): every one of the 6 non-`GET` routes now has a role check, the two found unprotected during this pass (`POST /decisions`, `POST /agents/{id}/recommendations`) were fixed and gated ADMIN. **183 tests, all passing** | `POST /audit-samples/{id}/review` still validates and returns a copy without persisting or feeding the trust engine — the one deliberately out-of-scope item this pass didn't touch, since audit-sample persistence is a larger, separate piece of work | Auto-applying a CLAWBACK recommendation without a human approval step (see "The demo script," beat 5) — today it requires the identical manual approve call an INCREASE does, contradicting this file's own design rule below |
+| Governance (`governance/`) | **Complete for the demo's needs.** The LangGraph workflow, prompt layer, real Gemini HTTP client with an on-disk recording store, and swappable providers (Gemini/Claude/OpenAI via `GOVERNANCE_PROVIDER`) are all real and merged. `cached` mode replays **15 real, committed recordings** (`governance/recordings/`, not empty — this was the single biggest gap the 2026-08-31 pass found, since closed). `live` mode is implemented with a per-agent timeout and fallback to the recording, not to stub text. **226 tests, all passing** | — | An Azure OpenAI client — the team's stated pivot to "Azure primary, Gemini fallback" has never been implemented or recorded in ADR-0012 (still `Status: Proposed`) or here; a repo-wide search for "azure" outside audit files returns zero hits. The three-provider design that *did* ship (Gemini/Claude/OpenAI) works today regardless of how that question resolves |
+| Simulator (`simulator/`) | **Finalized on `main`.** Ported onto the frozen contracts, the ground-truth labeller fixed to 2-way (APPROVE/REJECT, no ESCALATE), and a `simulator arc` command that runs the full ten-beat demo story offline — deterministic, byte-identical across runs and `PYTHONHASHSEED` values, no backend or network needed. **104 tests, all passing** | — | Online mode (posting a live-generated arc through the real backend, as opposed to the in-memory `arc` command or the backend's own `POST /simulation/runs`) is not this lane's concern now — Utkarsh owns the CLI, the backend generates its own invoices for `POST /simulation/runs` deliberately without importing this lane's code (see that endpoint's own docstring for why) |
+| Frontend (`frontend/`) | Rewritten onto the real contracts (5-rung ladder, real endpoint paths, real approve/reject calls, the audit page reading the backend's own `chain_valid` instead of recomputing it client-side). Build and typecheck both clean | `HorizontalThresholdGauge`'s accuracy-health verdict is still computed client-side against a hardcoded `0.85`, not sourced from the API — the one confirmed remaining "business logic in the frontend" violation from the 2026-09-02 and 2026-09-06 audits | The Simulation Control Room correctly implements its documented contract, but was non-functional against the real backend until `POST /simulation/runs` actually persisted a run (fixed 2026-09-07, same day as this table) |
 
-**Bottom line:** the statistical core is real and well-tested. The actual
-"earned autonomy" ladder mechanics are still unstarted but on schedule. The
-big change since 21 Aug isn't that more is *merged* — `main` itself has not
-moved — it's that a large, real, but incompatible body of simulator/frontend
-work now exists and needs porting rather than that lane starting from nothing.
-See `docs/RISKS.md` and `docs/DEADLINES.md` for what that means for the 15
-September deadline.
-
-> **A note on this table's dates.** The non-Governance rows were verified
-> against the repo on 2026-08-23 and describe a `main` that has since moved:
-> PRs #6–#11 merged the trust ladder and `evaluate()`, the simulator/frontend
-> port, and the backend OpenAPI contract, so the Trust, Backend, Simulator and
-> Frontend rows above all understate what now exists. Read
-> `docs/audits/2026-08-27-delta-audit.md` for the current picture. The
-> Governance row was re-verified by its owner on 2026-08-29 and is accurate as
-> of then; the paragraph above it still describes the 23 Aug state and is left
-> for its owner to revise.
+**Bottom line:** the vertical slice the 2026-08-31 audit found completely
+disconnected end to end is now real, live-verified, and (for decision
+ingest specifically) safe under concurrent load. What remains open going
+into the 9 September freeze is narrower and more specific than "wire it
+up": audit-sample persistence (the only remaining dead reason codes trace
+back to it), the clawback/human-approval mismatch against this file's own
+design rule, and the frontend's one remaining client-side threshold. See
+`docs/audits/2026-09-06-audit.md` for the full picture, including the
+per-person outstanding-work breakdown and the arithmetic against the
+freeze date.

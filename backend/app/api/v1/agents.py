@@ -10,23 +10,41 @@ from __future__ import annotations
 
 import dataclasses
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.v1.pagination import PageParam, PageSizeParam, paginate
-from app.deps import CurrentUserDep, DbSessionDep
-from app.errors import NOT_FOUND_RESPONSE, SERVICE_UNAVAILABLE_RESPONSE, not_found
+from app.deps import CurrentUserDep, DbSessionDep, require_role
+from app.errors import (
+    FORBIDDEN_RESPONSE,
+    NOT_FOUND_RESPONSE,
+    SERVICE_UNAVAILABLE_RESPONSE,
+    not_found,
+)
 from app.models import Agent, PolicyVersion
 from app.models import TrustEvaluation as TrustEvaluationRow
 from app.schemas.agent import AgentOut, PolicyVersionOut
 from app.schemas.envelope import Page
 from app.schemas.governance import RecommendationOut
 from app.schemas.trust import TrustEvaluationOut
+from app.schemas.user import Role
 from app.services.governance import generate_recommendation
 from app.services.trust import agent_context, compute_and_persist_trust_evaluation
 
 router = APIRouter(prefix="/agents", tags=["agents"])
+
+# Was unprotected until docs/audits/2026-09-06-audit.md's RBAC pass found it
+# (item 2: "no role gate on POST /agents/{id}/recommendations — any role can
+# trigger recommendation generation"). Gated ADMIN, for the same reason
+# `app/api/v1/simulation.py` gates starting a run ADMIN-only: this is an
+# operational trigger, not a human review judgment (that's `approve`/
+# `reject`, already ADMIN-only in `app/api/v1/recommendations.py`). Flagged
+# rather than assumed: nothing in docs/lanes/vp.md or the ADRs says whether
+# a REVIEWER should be able to request fresh evidence on demand before
+# deciding on a pending recommendation — that's a plausible design too, and
+# this default can be revisited without a contract change either way.
+_admin_only = Depends(require_role(Role.ADMIN))
 
 
 def _get_agent_row_or_404(db: Session, agent_id: str) -> Agent:
@@ -130,7 +148,8 @@ def list_trust_history(
     "/{agent_id}/recommendations",
     response_model=RecommendationOut,
     status_code=status.HTTP_201_CREATED,
-    responses={**NOT_FOUND_RESPONSE, **SERVICE_UNAVAILABLE_RESPONSE},
+    dependencies=[_admin_only],
+    responses={**NOT_FOUND_RESPONSE, **SERVICE_UNAVAILABLE_RESPONSE, **FORBIDDEN_RESPONSE},
 )
 def create_recommendation(agent_id: str, user: CurrentUserDep, db: DbSessionDep) -> RecommendationOut:
     """Generate a fresh governance recommendation for `agent_id`: recompute
