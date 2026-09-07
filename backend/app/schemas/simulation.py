@@ -67,3 +67,6 @@ class SimulationRunOut(BaseModel):
     decisions_submitted: int
     accuracy: float | None
     wilson_lower_bound: float | None
+    # Populated only when status is FAILED — the "record the failure on the
+    # run" half of this endpoint's brief. None on every other status.
+    error_message: str | None = None

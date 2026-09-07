@@ -1254,6 +1254,17 @@
             "title": "Decisions Submitted",
             "type": "integer"
           },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
           "invoice_count": {
             "title": "Invoice Count",
             "type": "integer"
@@ -2855,7 +2866,7 @@
     },
     "/api/v1/simulation/runs": {
       "post": {
-        "description": "Start a simulation run \u2014 the simulator generates `invoice_count`\nsynthetic invoices for `phase` and posts each resulting decision to\n`POST /api/v1/decisions`.\n\nOnce implemented: enqueues the run (no Celery \u2014 see docs/CONTEXT.md's\ncut-scope list; a background task or a synchronous call is enough for\nthis project's scale) and returns immediately with `status=pending`.\nThis stub returns a freshly-minted run in `pending` status without\nactually starting anything.",
+        "description": "Start a real simulation run.\n\nCreates the run row with `status=running`, then schedules\n`app.services.simulation.execute_simulation_run` as a `BackgroundTasks`\njob: it generates `invoice_count` synthetic invoices for `phase` from\n`seed`, runs a scripted agent over them, and submits every resulting\ndecision through the same ingest path `POST /api/v1/decisions` itself\nuses (`app.api.v1.decisions._create_decision`, called directly and\nin-process \u2014 no self-HTTP-call, same function either way, so this is\nnot a shortcut into the database).\n\nThe run row is committed here, explicitly, before the background task\nis scheduled \u2014 deliberately not left to `DbSessionDep`'s usual\ncommit-at-end-of-request \u2014 so the background task's own session is\nguaranteed to find the row already durable, regardless of exactly how\nFastAPI orders background-task execution relative to a dependency's\npost-`yield` teardown code.",
         "operationId": "start_simulation_run_api_v1_simulation_runs_post",
         "parameters": [
           {
@@ -2906,6 +2917,16 @@
             },
             "description": "The current role may not perform this action."
           },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "No resource with that id."
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2925,7 +2946,7 @@
     },
     "/api/v1/simulation/runs/{run_id}": {
       "get": {
-        "description": "Poll a run's status and, once complete, its summary accuracy/Wilson\nlower bound over the decisions it submitted.\n\nOnce implemented: `SELECT ... WHERE id = :run_id`, 404 if no row.",
+        "description": "Poll a run's status and, once complete, its summary accuracy/Wilson\nlower bound over the decisions it submitted. `decisions_submitted`\nupdates after every decision while the run is still in progress.",
         "operationId": "get_simulation_run_api_v1_simulation_runs__run_id__get",
         "parameters": [
           {
