@@ -1057,6 +1057,13 @@
             "title": "Rationale",
             "type": "string"
           },
+          "reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reason Codes",
+            "type": "array"
+          },
           "recommendation_id": {
             "title": "Recommendation Id",
             "type": "string"
@@ -1839,6 +1846,16 @@
             },
             "description": "Successful Response"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "The current role may not perform this action."
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2412,6 +2429,16 @@
             },
             "description": "Successful Response"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "The current role may not perform this action."
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2668,7 +2695,7 @@
     },
     "/api/v1/recommendations/{rec_id}/approve": {
       "post": {
-        "description": "Authorize a pending recommendation. ADMIN only.\n\nWrites an `approvals` row (`decided_by`, `verdict=APPROVED`, `reason`,\n`decided_at`), flips `Recommendation.status` to `APPROVED`, and \u2014 in the\nsame transaction \u2014 writes the new `policy_versions` row that actually\nchanges `agents.current_limit`/`current_rung`\n(docs/lanes/vp.md: \"Never update agents.current_limit without writing a\npolicy_versions row in the same transaction\").",
+        "description": "Authorize a pending recommendation. ADMIN only.\n\nWrites an `approvals` row (`decided_by`, `verdict=APPROVED`, `reason`,\n`decided_at`), flips `Recommendation.status` to `APPROVED`, and \u2014 only if\n`proposed_limit` actually differs from the agent's current limit \u2014 writes\nthe new `policy_versions` row that changes `agents.current_limit`/\n`current_rung` in the same transaction (docs/lanes/vp.md: \"Never update\nagents.current_limit without writing a policy_versions row in the same\ntransaction\"). Approving a HOLD recommendation (`proposed_limit` already\nequal to the current limit) is still recorded via the `approvals` row,\nbut writes no policy version \u2014 and so does not reset the cooldown clock\n`app/services/trust.py:agent_context` derives from the latest version's\n`effective_from`, which a no-op approval has no business touching.",
         "operationId": "approve_recommendation_api_v1_recommendations__rec_id__approve_post",
         "parameters": [
           {
