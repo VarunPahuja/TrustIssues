@@ -19,8 +19,8 @@ INTERFACE CONTRACT:
 
 from __future__ import annotations
 
-import sys
 import os
+import sys
 from typing import Protocol, runtime_checkable
 
 _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))

@@ -8,11 +8,9 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from enum import Enum
-from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
-
 from shared.enums import Action
 
 

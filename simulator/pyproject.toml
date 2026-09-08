@@ -25,3 +25,18 @@ dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# Invoice dates are business dates with no timezone meaning, so date.today() is
+# the correct call. DTZ011 would have us write datetime.now(tz=...).date(), which
+# adds timezone ceremony to a value that never carries a time.
+ignore = ["DTZ011"]
+
+[tool.ruff.lint.per-file-ignores]
+# Typer builds its CLI from function calls in argument defaults (typer.Option,
+# typer.Argument). B008 is unavoidable here without fighting the framework.
+"simulator/cli.py" = ["B008"]

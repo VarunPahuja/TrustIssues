@@ -14,14 +14,20 @@ from sqlalchemy.orm import Session
 
 from app.api.v1.pagination import PageParam, PageSizeParam, paginate
 from app.deps import CurrentUserDep, DbSessionDep, require_role
-from app.errors import FORBIDDEN_RESPONSE, NOT_FOUND_RESPONSE, ApiError, not_found
+from app.errors import (
+    CONFLICT_RESPONSE,
+    FORBIDDEN_RESPONSE,
+    NOT_FOUND_RESPONSE,
+    ApiError,
+    not_found,
+)
 from app.models import Agent, Decision, Invoice
 from app.models.audit_log import append_entry
 from app.models.policy_versions import current_policy_version_for
 from app.policy.engine import evaluate_decision
 from app.policy.types import Invoice as PolicyInvoice
 from app.policy.types import PolicyVersion as PolicyVersionView
-from app.schemas.decision import DecisionCreate, DecisionRecordOut
+from app.schemas.decision import DecisionCreate, DecisionRecordOut, DecisionRuling
 from app.schemas.envelope import Page
 from app.schemas.user import Role
 
@@ -40,6 +46,11 @@ router = APIRouter(prefix="/decisions", tags=["decisions"])
 # which is exactly how the simulator calls this route in practice. Revisit
 # when real agent/service credentials exist instead of a human role header.
 _admin_only = Depends(require_role(Role.ADMIN))
+
+# Ruling on an escalation is REVIEWER's job, by the same reasoning that makes
+# reviewing an audit sample theirs (ADR-0009); ADMIN may also do it, and
+# AUDITOR stays read-only.
+_reviewer_or_admin = Depends(require_role(Role.ADMIN, Role.REVIEWER))
 
 
 def _decision_out(decision: Decision, invoice: Invoice) -> DecisionRecordOut:
@@ -87,6 +98,18 @@ def _create_decision(db: Session, body: DecisionCreate) -> Decision:
             code="invalid_ground_truth",
             message="ground_truth must be APPROVE or REJECT — ESCALATE is only ever an agent action.",
             detail={"ground_truth": body.ground_truth.value},
+        )
+
+    if body.recommended_action is Action.ESCALATE:
+        # A recommendation is what the agent would have DONE had it been
+        # allowed to act. "I recommend escalating" is not an action, and it
+        # could never agree or disagree with a human ruling, so it would be
+        # dead weight in the human-agreement denominator.
+        raise ApiError(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            code="invalid_recommended_action",
+            message="recommended_action must be APPROVE or REJECT, never ESCALATE.",
+            detail={"recommended_action": body.recommended_action.value},
         )
 
     # `.with_for_update()` instead of `db.get()`: this row lock is the fix
@@ -169,7 +192,9 @@ def _create_decision(db: Session, body: DecisionCreate) -> Decision:
         invoice_id=body.invoice_id,
         agent_id=agent.id,
         action=body.action,
-        recommended_action=None,
+        recommended_action=body.recommended_action,
+        # Filled in later by POST /decisions/{id}/ruling, never at ingest:
+        # the agent cannot rule on its own escalation.
         human_ruling=None,
         policy_version_id=policy_version.id,
         within_limit=outcome.within_limit,
@@ -191,6 +216,9 @@ def _create_decision(db: Session, body: DecisionCreate) -> Decision:
             "amount": body.amount,
             "action": body.action.value,
             "ground_truth": body.ground_truth.value,
+            "recommended_action": (
+                body.recommended_action.value if body.recommended_action else None
+            ),
             "allowed": outcome.allowed,
             "within_limit": outcome.within_limit,
             "reason_code": outcome.reason_code,
@@ -249,5 +277,106 @@ def get_decision(decision_id: str, user: CurrentUserDep, db: DbSessionDep) -> De
         raise not_found(
             "decision_not_found", f"No decision {decision_id!r}.", {"decision_id": decision_id}
         )
+    invoice = db.get(Invoice, decision.invoice_id)
+    return _decision_out(decision, invoice)
+
+
+@router.post(
+    "/{decision_id}/ruling",
+    response_model=DecisionRecordOut,
+    dependencies=[_reviewer_or_admin],
+    responses={**NOT_FOUND_RESPONSE, **FORBIDDEN_RESPONSE, **CONFLICT_RESPONSE},
+)
+def rule_on_decision(
+    decision_id: str, body: DecisionRuling, user: CurrentUserDep, db: DbSessionDep
+) -> DecisionRecordOut:
+    """Record a human's ruling on one escalated decision. REVIEWER or ADMIN only.
+
+    This is the write path for `decisions.human_ruling`, and the only one:
+    `POST /api/v1/decisions` deliberately leaves it null, because an agent
+    cannot rule on its own escalation.
+
+    Escalating is the agent deferring to a human, so a ruling is the answer to
+    that deferral — which is why only an ESCALATE decision can be ruled on, and
+    why the ruling itself must be APPROVE or REJECT. `shared.contracts.
+    DecisionRecord.human_agreed` then compares the ruling against the agent's
+    own `recommended_action`, and `trust_engine.stats.rates.human_agreement`
+    aggregates those comparisons over ruled escalations only.
+
+    A decision ingested without a `recommended_action` can still be ruled on —
+    the ruling is a real fact worth recording — but the pair contributes
+    nothing to human agreement, since there is no recommendation to compare
+    against. `has_human_ruling` requires both halves.
+
+    Rules once. A second ruling is a 409 rather than a silent overwrite: the
+    audit chain records what a human decided, and decisions already evaluated
+    against it must not change underneath that evidence.
+    """
+    if body.ruling is Action.ESCALATE:
+        # The decision is already an escalation; "escalate it again" is not a
+        # ruling, and it could never agree or disagree with the agent's
+        # recommendation.
+        raise ApiError(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            code="invalid_ruling",
+            message="ruling must be APPROVE or REJECT — ESCALATE is not a human verdict.",
+            detail={"ruling": body.ruling.value},
+        )
+
+    decision = db.get(Decision, decision_id)
+    if decision is None:
+        raise not_found(
+            "decision_not_found", f"No decision {decision_id!r}.", {"decision_id": decision_id}
+        )
+
+    if decision.action is not Action.ESCALATE:
+        raise ApiError(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            code="decision_not_escalated",
+            message=(
+                f"Decision {decision_id!r} was {decision.action.value}, not ESCALATE. "
+                "Only an escalation is awaiting a human ruling."
+            ),
+            detail={"decision_id": decision_id, "action": decision.action.value},
+        )
+
+    if decision.human_ruling is not None:
+        raise ApiError(
+            status_code=status.HTTP_409_CONFLICT,
+            code="decision_already_ruled",
+            message=f"Decision {decision_id!r} was already ruled {decision.human_ruling.value}.",
+            detail={"decision_id": decision_id, "human_ruling": decision.human_ruling.value},
+        )
+
+    decision.human_ruling = body.ruling
+
+    append_entry(
+        db,
+        id=f"log-{uuid.uuid4().hex[:12]}",
+        ts=datetime.now(UTC),
+        actor=user.user_id,
+        actor_type="human",
+        event_type="decision.ruled",
+        entity_type="decision",
+        entity_id=decision.id,
+        payload={
+            "agent_id": decision.agent_id,
+            "invoice_id": decision.invoice_id,
+            "action": decision.action.value,
+            "recommended_action": (
+                decision.recommended_action.value if decision.recommended_action else None
+            ),
+            "human_ruling": body.ruling.value,
+            # Null when the agent never recorded a recommendation, in which
+            # case this ruling cannot feed human agreement (see docstring).
+            "agreed": (
+                decision.recommended_action is body.ruling
+                if decision.recommended_action is not None
+                else None
+            ),
+            "reason": body.reason,
+        },
+    )
+
     invoice = db.get(Invoice, decision.invoice_id)
     return _decision_out(decision, invoice)

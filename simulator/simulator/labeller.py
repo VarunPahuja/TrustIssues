@@ -24,8 +24,8 @@ RULE PRIORITY ORDER:
 
 from __future__ import annotations
 
-import sys
 import os
+import sys
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
@@ -34,11 +34,11 @@ if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
 from shared.constants import AUTONOMY_FLOOR, AUTONOMY_LADDER
-from simulator.constants import BLOCKED_VENDORS
 from shared.enums import Action
-from simulator import reason_codes as RC
-from simulator.models import Invoice, InvoiceCategory
 
+from simulator import reason_codes as RC
+from simulator.constants import BLOCKED_VENDORS
+from simulator.models import InvoiceCategory
 
 # Threshold below which an ambiguous vendor is always approved (tiny amounts are fine)
 TRIVIAL_AMOUNT_THRESHOLD_INR = 500
@@ -97,8 +97,7 @@ class GroundTruthLabeller:
         # Rule 5: Future date
         invoice_date = invoice.invoice_date
         if isinstance(invoice_date, str):
-            from datetime import datetime
-            invoice_date = datetime.strptime(invoice_date, "%Y-%m-%d").date()
+            invoice_date = date.fromisoformat(invoice_date)
         if invoice_date > date.today():
             return Action.REJECT, RC.REJECT_FUTURE_DATE, 1.0
 

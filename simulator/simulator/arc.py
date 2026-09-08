@@ -50,16 +50,16 @@ if _trust_root not in sys.path:
     sys.path.insert(0, _trust_root)
 
 from rich.console import Console
-
 from shared.constants import AUTONOMY_FLOOR
 from shared.contracts import AgentContext, DecisionRecord
-from shared.enums import AgentState
+from shared.enums import Action, AgentState
+from trust.trust_engine.evaluate import evaluate
+
 from simulator.agents.scripted import ScriptedAgent
 from simulator.constants import DEFAULT_SEED, PHASE_ERROR_RATES
 from simulator.distributions import get_params
 from simulator.generator import InvoiceGenerator
 from simulator.models import Invoice, SimulationPhase
-from trust.trust_engine.evaluate import evaluate
 
 console = Console()
 
@@ -80,16 +80,25 @@ class Beat:
 def default_script(count: int) -> list[Beat]:
     """The ten beats: climb, collapse, claw back, recover, climb again.
 
-    Recovery gets extra runway because the degraded phase's mistakes stay in
-    the lifetime history and have to be diluted by clean decisions before the
-    trust score can clear the threshold again.
+    Recovery is split deliberately. The degraded phase's mistakes stay in the
+    lifetime history and have to be diluted by clean decisions before the trust
+    score can clear the threshold again, so 10a is given only enough runway to
+    show clear improvement while still falling short: it reports
+    TRUST_BELOW_THRESHOLD and holds. 10b then supplies the rest and earns the
+    rung back. That "recovering, but not yet" beat is the point of splitting
+    them -- it shows the threshold is a real gate rather than a formality, and
+    that a clawback cannot be undone simply by waiting.
+
+    The split is calibrated against the default count of 200, where 10a lands
+    at a trust score of 69.2 against a threshold of 70.0. Widening 10a to a
+    full `count * 2` pushes it to 70.3 and the beat disappears.
     """
     return [
         Beat("1-3  earning trust at the floor", SimulationPhase.GOOD, count),
         Beat("4-6  first rung earned", SimulationPhase.GOOD, count),
         Beat("6b   climbing again", SimulationPhase.GOOD, count),
         Beat("7-9  degradation injected", SimulationPhase.DEGRADED, count),
-        Beat("10a  recovery begins", SimulationPhase.RECOVERY, count * 2),
+        Beat("10a  recovery begins", SimulationPhase.RECOVERY, count * 3 // 4),
         Beat("10b  recovery continues", SimulationPhase.RECOVERY, count * 3),
     ]
 
@@ -161,10 +170,28 @@ class ArcRunner:
         )
         for invoice in invoices:
             outcome = agent.decide(invoice)
-            self.records.append(self._to_record(invoice, outcome))
+            self.records.append(self._to_record(invoice, outcome, agent))
 
-    def _to_record(self, invoice: Invoice, outcome) -> DecisionRecord:
+    def _to_record(self, invoice: Invoice, outcome, agent: ScriptedAgent) -> DecisionRecord:
         seq = len(self.records)
+        # An escalation is the agent deferring to a human, so it carries both
+        # halves of the human-agreement evidence: what the agent would have
+        # done (`recommended_action`) and what the human decided
+        # (`human_ruling`). Without both, shared.contracts.DecisionRecord
+        # .has_human_ruling is False and the pair is excluded from the trust
+        # score entirely — which is why every beat used to report
+        # AGREEMENT_EVIDENCE_INSUFFICIENT and WEIGHTS_RENORMALISED.
+        #
+        # The human is modelled as the reference standard: they rule the way
+        # ground truth says. Agreement therefore measures whether the agent's
+        # own judgement matches the reviewer's, and it falls in the degraded
+        # phase because the agent's advice degrades with it.
+        recommended_action = None
+        human_ruling = None
+        if outcome.action is Action.ESCALATE:
+            recommended_action = agent.recommend(invoice)
+            human_ruling = invoice.ground_truth_decision
+
         return DecisionRecord(
             decision_id=f"{self.run_id}-{seq:05d}",
             sequence=seq,
@@ -174,6 +201,8 @@ class ArcRunner:
             ground_truth=invoice.ground_truth_decision,
             agent_id=self.agent_id,
             decided_at=None,                 # never read the clock
+            recommended_action=recommended_action,
+            human_ruling=human_ruling,
         )
 
     # ------------------------------------------------------------------
