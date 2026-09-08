@@ -197,16 +197,17 @@ behind every beat, not just this summary.
    seed-data recommendations have been approved so far.
 5. Inject a critical error (an APPROVE that should have been a REJECT) and
    show the automatic clawback to the floor, with no human step required.
-   **The "no human step" half of this is currently false.** Drift/critical-error
-   detection and the CLAWBACK direction are real (trust engine, live-verified),
-   but applying a clawback to `agents.current_rung` goes through the exact
-   same `POST /recommendations/{id}/approve` call an INCREASE needs — there
-   is no code path anywhere that auto-applies a CLAWBACK recommendation.
-   This contradicts this file's own design rule above ("Taking autonomy
-   away... does not [require human sign-off]") and ADR-0004's title.
-   Flagged, not silently fixed here — either the code needs an auto-apply
-   path for CLAWBACK, or this rule and ADR-0004 need to say clawback is
-   human-gated too.
+   **Real, as of 2026-09-08.** `generate_recommendation`
+   (`backend/app/services/governance.py`) applies a `CLAWBACK` recommendation
+   immediately, in the same transaction it's generated in —
+   `apply_policy_version` runs with `created_by="system"`, status is
+   `APPROVED` on write, and no `approvals` row exists for it (`Approval.
+   decided_by` is a foreign-key-to-`users.id` human-approval table by
+   construction, so it deliberately doesn't get one — see ADR-0004's
+   Consequences for the full reasoning). `POST /recommendations/{id}/approve`
+   is never called. Live-verified: injecting a real critical error and
+   calling `POST /agents/{id}/recommendations` drops the agent's rung with
+   no further API call.
 6. Inject a subtler, sustained accuracy drop (not a single critical error) and
    show drift detection catch it — first as a WARNING tripwire, then
    CONFIRMED once the two-proportion z-test has enough samples to back it.
@@ -250,7 +251,7 @@ for PRs #20 through #32; this table is the summary.
 |---|---|---|---|
 | `shared/` (treaty files) | **Merged 2026-08-21, frozen v1.1, unchanged since** — confirmed empty diff against every branch, including both PRs open as of this writing. All four files: enums, constants, 18 reason codes, contracts | — | Nothing — the freeze has held completely |
 | Trust Engine (`trust/`) | **Complete.** Wilson score interval, accuracy/utilization/human-agreement proportions, error breakdown, two-stage drift detection, trust-score composition, the full autonomy ladder (six increase gates, two clawback triggers, exactly one rung per evaluation), cooldowns and clawback-recovery logic — all pure functions, all 18 reason codes correctly categorized (though see the Backend row for which are actually *reachable* live). **174 tests, all passing** | — | Nothing outstanding in this lane |
-| Backend (`backend/`) | **The most complete lane.** Real persistence throughout: decision ingest (Policy Engine, hash-chained audit log), trust evaluation, governance-recommendation generation with the hard-ceiling clamp (and, as of 2026-09-07, the clamp's own reason code — `RECOMMENDATION_CLAMPED` — is finally emitted, not just defined), human approve/reject with real `policy_versions` writes, and `POST /simulation/runs` actually starts and runs a simulation rather than minting a fixture. Two concurrency races found live under real Postgres load were fixed (an agent-row lock for the decision-sequence race, an advisory lock plus a new ordering column for a silent audit-chain fork). RBAC is real (not a stub-in-name-only): every one of the 6 non-`GET` routes now has a role check, the two found unprotected during this pass (`POST /decisions`, `POST /agents/{id}/recommendations`) were fixed and gated ADMIN. **183 tests, all passing** | `POST /audit-samples/{id}/review` still validates and returns a copy without persisting or feeding the trust engine — the one deliberately out-of-scope item this pass didn't touch, since audit-sample persistence is a larger, separate piece of work | Auto-applying a CLAWBACK recommendation without a human approval step (see "The demo script," beat 5) — today it requires the identical manual approve call an INCREASE does, contradicting this file's own design rule below |
+| Backend (`backend/`) | **The most complete lane.** Real persistence throughout: decision ingest (Policy Engine, hash-chained audit log), trust evaluation, governance-recommendation generation with the hard-ceiling clamp (`RECOMMENDATION_CLAMPED` emitted, not just defined), human approve/reject with real `policy_versions` writes, and `POST /simulation/runs` actually starts and runs a simulation rather than minting a fixture. A `CLAWBACK` recommendation now applies itself immediately and automatically — status `APPROVED` on write, `apply_policy_version` called with `created_by="system"`, no human call, no `approvals` row — matching ADR-0004 and this file's own design rule for the first time (fixed 2026-09-08; see "The demo script," beat 5, and ADR-0004's Consequences for the full mechanism). Two concurrency races found live under real Postgres load were fixed (an agent-row lock for the decision-sequence race, an advisory lock plus a new ordering column for a silent audit-chain fork). RBAC is real (not a stub-in-name-only): every one of the 6 non-`GET` routes now has a role check. **190 tests, all passing** | `POST /audit-samples/{id}/review` still validates and returns a copy without persisting or feeding the trust engine — the one deliberately out-of-scope item several passes in a row haven't touched, since audit-sample persistence is a larger, separate piece of work | Nothing else outstanding in this lane as of this table |
 | Governance (`governance/`) | **Complete for the demo's needs.** The LangGraph workflow, prompt layer, real Gemini HTTP client with an on-disk recording store, and swappable providers (Gemini/Claude/OpenAI via `GOVERNANCE_PROVIDER`) are all real and merged. `cached` mode replays **15 real, committed recordings** (`governance/recordings/`, not empty — this was the single biggest gap the 2026-08-31 pass found, since closed). `live` mode is implemented with a per-agent timeout and fallback to the recording, not to stub text. **226 tests, all passing** | — | An Azure OpenAI client — the team's stated pivot to "Azure primary, Gemini fallback" has never been implemented or recorded in ADR-0012 (still `Status: Proposed`) or here; a repo-wide search for "azure" outside audit files returns zero hits. The three-provider design that *did* ship (Gemini/Claude/OpenAI) works today regardless of how that question resolves |
 | Simulator (`simulator/`) | **Finalized on `main`.** Ported onto the frozen contracts, the ground-truth labeller fixed to 2-way (APPROVE/REJECT, no ESCALATE), and a `simulator arc` command that runs the full ten-beat demo story offline — deterministic, byte-identical across runs and `PYTHONHASHSEED` values, no backend or network needed. **104 tests, all passing** | — | Online mode (posting a live-generated arc through the real backend, as opposed to the in-memory `arc` command or the backend's own `POST /simulation/runs`) is not this lane's concern now — Utkarsh owns the CLI, the backend generates its own invoices for `POST /simulation/runs` deliberately without importing this lane's code (see that endpoint's own docstring for why) |
 | Frontend (`frontend/`) | Rewritten onto the real contracts (5-rung ladder, real endpoint paths, real approve/reject calls, the audit page reading the backend's own `chain_valid` instead of recomputing it client-side). Build and typecheck both clean | `HorizontalThresholdGauge`'s accuracy-health verdict is still computed client-side against a hardcoded `0.85`, not sourced from the API — the one confirmed remaining "business logic in the frontend" violation from the 2026-09-02 and 2026-09-06 audits | The Simulation Control Room correctly implements its documented contract, but was non-functional against the real backend until `POST /simulation/runs` actually persisted a run (fixed 2026-09-07, same day as this table) |
@@ -260,8 +261,9 @@ disconnected end to end is now real, live-verified, and (for decision
 ingest specifically) safe under concurrent load. What remains open going
 into the 9 September freeze is narrower and more specific than "wire it
 up": audit-sample persistence (the only remaining dead reason codes trace
-back to it), the clawback/human-approval mismatch against this file's own
-design rule, and the frontend's one remaining client-side threshold. See
-`docs/audits/2026-09-06-audit.md` for the full picture, including the
+back to it) and the frontend's one remaining client-side threshold — the
+clawback/human-approval mismatch this file used to flag here is fixed (see
+"The demo script," beat 5). See `docs/audits/2026-09-06-audit.md` for the
+full picture as of that date, including the
 per-person outstanding-work breakdown and the arithmetic against the
 freeze date.
