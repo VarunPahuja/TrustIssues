@@ -56,6 +56,7 @@ from shared.enums import Action, AgentState
 from trust.trust_engine.evaluate import evaluate
 
 from simulator.agents.scripted import ScriptedAgent
+from simulator.api_client import APIClient
 from simulator.constants import DEFAULT_SEED, PHASE_ERROR_RATES
 from simulator.distributions import get_params
 from simulator.generator import InvoiceGenerator
@@ -118,12 +119,25 @@ class ArcRunner:
         count: int = 200,
         auto_approve: bool = True,
         run_id: str = "arc",
+        api_client: APIClient | None = None,
     ) -> None:
         self.agent_id = agent_id
         self.seed = seed
         self.count = count
         self.auto_approve = auto_approve
         self.run_id = run_id
+
+        # Online mode. Submission is deliberately a SIDE EFFECT: the arc still
+        # evaluates from its own in-memory records, so the story it tells is
+        # identical whether or not a backend is attached. That is what keeps
+        # the demo reproducible while still proving the ingest path works.
+        # Driving the backend's own ladder (generating recommendations and
+        # letting it move the limit) is a separate step, not this one.
+        self.api_client = api_client
+        self.submitted: int = 0
+        self.ruled: int = 0
+        self.submit_failures: list[str] = []
+        self.submitted_ids: list[str] = []
 
         # Ladder state the backend would normally hold.
         self.limit: int = AUTONOMY_FLOOR
@@ -170,7 +184,49 @@ class ArcRunner:
         )
         for invoice in invoices:
             outcome = agent.decide(invoice)
-            self.records.append(self._to_record(invoice, outcome, agent))
+            record = self._to_record(invoice, outcome, agent)
+            self.records.append(record)
+            if self.api_client is not None:
+                self._submit(invoice, outcome, record)
+
+    def _submit(self, invoice: Invoice, outcome, record: DecisionRecord) -> None:
+        """POST one decision, and its ruling if it was escalated.
+
+        A failure is collected, never raised: one rejected decision must not
+        abort a 1,500-decision arc, and the count of failures is itself the
+        result we care about — a run that drops decisions is not reproducible.
+        """
+        try:
+            response = self.api_client.submit_decision(
+                invoice,
+                outcome,
+                self.agent_id,
+                reason=f"{self.run_id} seed={self.seed} seq={record.sequence}",
+                recommended_action=record.recommended_action,
+            )
+        except Exception as exc:  # noqa: BLE001 - a failed submit is recorded, not fatal
+            self.submit_failures.append(f"{record.decision_id}: {type(exc).__name__}: {exc}")
+            return
+
+        self.submitted += 1
+        decision_id = response.get("decision_id")
+        if decision_id:
+            self.submitted_ids.append(decision_id)
+
+        # An escalation carries a human ruling in this arc, so send it too —
+        # without it the backend's own trust evaluation would drop the
+        # human-agreement component even though the evidence exists locally.
+        if record.human_ruling is None or not decision_id:
+            return
+        try:
+            self.api_client.submit_ruling(
+                decision_id,
+                record.human_ruling,
+                reason=f"{self.run_id} reviewer ruling seq={record.sequence}",
+            )
+            self.ruled += 1
+        except Exception as exc:  # noqa: BLE001 - a failed ruling is recorded, not fatal
+            self.submit_failures.append(f"{decision_id} ruling: {type(exc).__name__}: {exc}")
 
     def _to_record(self, invoice: Invoice, outcome, agent: ScriptedAgent) -> DecisionRecord:
         seq = len(self.records)
@@ -257,6 +313,31 @@ class ArcRunner:
             self._print_row(beat, te, outcome)
 
         console.print(f"\n[bold]Final autonomy limit:[/] INR {self.limit}\n")
+
+        if self.api_client is not None:
+            self._print_submission_summary()
+
+    def _print_submission_summary(self) -> None:
+        """What actually reached the backend.
+
+        The number that matters is failures: a run that silently drops
+        decisions cannot be called reproducible, whatever the arc printed
+        above from its own in-memory copy.
+        """
+        expected = len(self.records)
+        escalations = sum(1 for r in self.records if r.human_ruling is not None)
+        console.print("[bold]Backend submission[/]")
+        console.print(f"  decisions  {self.submitted}/{expected} accepted")
+        console.print(f"  rulings    {self.ruled}/{escalations} accepted")
+        if self.submit_failures:
+            console.print(f"  [red]failures  {len(self.submit_failures)}[/]")
+            for failure in self.submit_failures[:10]:
+                console.print(f"    - {failure}")
+            if len(self.submit_failures) > 10:
+                console.print(f"    ... and {len(self.submit_failures) - 10} more")
+        else:
+            console.print("  [green]failures   0 - nothing dropped[/]")
+        console.print()
 
     # ------------------------------------------------------------------
     # Reporting

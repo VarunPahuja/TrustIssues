@@ -29,6 +29,7 @@ if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
 import httpx
+from shared.enums import Action
 
 from simulator.constants import DEFAULT_API_BASE_URL, DEFAULT_API_VERSION
 from simulator.models import AgentOutcome, Invoice
@@ -77,17 +78,23 @@ class APIClient:
         outcome: AgentOutcome,
         agent_id: str,
         reason: str,
+        recommended_action: Action | None = None,
     ) -> dict:
         """
         POST /api/v1/decisions
         Submit a decision (agent action + ground truth) to the backend.
-        
+
         Args:
-            invoice:   The Invoice object (source of ground_truth_decision and amount)
-            outcome:   The AgentOutcome with the agent's decision
-            agent_id:  Agent identifier
-            reason:    Why this decision is being submitted (e.g., simulation run ID)
-        
+            invoice:            The Invoice object (source of ground_truth_decision and amount)
+            outcome:            The AgentOutcome with the agent's decision
+            agent_id:           Agent identifier
+            reason:             Why this decision is being submitted (e.g., simulation run ID)
+            recommended_action: What the agent would have done had its limit not
+                                stopped it. Only meaningful when the action is
+                                ESCALATE; the backend rejects ESCALATE here, and
+                                `human_agreement` needs it alongside a later
+                                ruling before the pair counts.
+
         Returns:
             Backend's DecisionRecordOut response.
         """
@@ -99,11 +106,26 @@ class APIClient:
             "agent_id": agent_id,
             "reason": reason,
         }
+        if recommended_action is not None:
+            body["recommended_action"] = recommended_action.value
         data = self._post(
             f"{self.api_prefix}/decisions",
             body,
         )
         return data
+
+    def submit_ruling(self, decision_id: str, ruling: Action, reason: str) -> dict:
+        """POST /api/v1/decisions/{decision_id}/ruling
+
+        Records a human's verdict on an escalated decision. Together with the
+        `recommended_action` sent at ingest, this is what gives
+        `human_agreement` live data instead of the trust engine dropping the
+        component and renormalising the other three weights.
+        """
+        return self._post(
+            f"{self.api_prefix}/decisions/{decision_id}/ruling",
+            {"ruling": ruling.value, "reason": reason},
+        )
 
     def get_agent_status(self, agent_id: str) -> dict:
         """GET /api/v1/agents/{agent_id}"""

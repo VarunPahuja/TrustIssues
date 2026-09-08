@@ -203,13 +203,40 @@ def arc(
         True, "--auto-approve/--wait-for-human",
         help="Auto-approve increases (unattended demo) or pause for a human to approve.",
     ),
+    submit: bool = typer.Option(
+        False, "--submit/--no-submit",
+        help="Also POST every decision (and every escalation's ruling) to a real backend.",
+    ),
+    api_url: str = typer.Option(DEFAULT_API_BASE_URL, "--api-url", help="Backend API base URL"),
 ) -> None:
-    """Run the full ten-beat demo arc: climb, collapse, clawback, recover."""
+    """Run the full ten-beat demo arc: climb, collapse, clawback, recover.
+
+    Offline by default: the arc evaluates its own in-memory decisions, so it
+    needs no backend and reproduces exactly. `--submit` additionally POSTs
+    every decision to a real backend and rules on every escalation. That is a
+    side effect only -- the story printed above the submission summary is the
+    same either way -- so a submission failure shows up as a failure count
+    rather than as a different demo.
+    """
+    from simulator.api_client import APIClient
     from simulator.arc import ArcRunner
 
-    ArcRunner(
-        agent_id=agent_id, seed=seed, count=count, auto_approve=auto_approve
-    ).run()
+    client = None
+    if submit:
+        client = APIClient(base_url=api_url)
+        if not client.health_check():
+            console.print(f"[red]No backend reachable at {api_url}.[/] "
+                          "Start it, or drop --submit to run offline.")
+            raise typer.Exit(1)
+
+    try:
+        ArcRunner(
+            agent_id=agent_id, seed=seed, count=count,
+            auto_approve=auto_approve, api_client=client,
+        ).run()
+    finally:
+        if client is not None:
+            client.close()
 
 
 # ---------------------------------------------------------------------------
