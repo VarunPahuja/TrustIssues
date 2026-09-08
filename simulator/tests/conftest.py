@@ -6,8 +6,8 @@ Adds the repo root to sys.path so that `shared/` and `simulator/` packages
 are importable without installation.
 """
 
-import sys
 import os
+import sys
 
 # Ensure repo root is on the path before any test module is imported
 _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))

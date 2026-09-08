@@ -32,7 +32,6 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if _repo_root not in sys.path:
@@ -41,14 +40,13 @@ if _repo_root not in sys.path:
 import typer
 from rich.console import Console
 from rich.table import Table
-from rich import print as rprint
-
 from shared.constants import AUTONOMY_FLOOR
 from shared.enums import Action
+
 from simulator.constants import DEFAULT_API_BASE_URL, DEFAULT_SEED, PHASE_ERROR_RATES
-from simulator.models import Invoice, SimulationPhase, SimulationRunConfig
 from simulator.distributions import get_params
 from simulator.generator import InvoiceGenerator
+from simulator.models import Invoice, SimulationPhase, SimulationRunConfig
 from simulator.runner import SimulationRunner
 
 app = typer.Typer(
@@ -131,7 +129,7 @@ def run(
              "and escalates above it. Set this to the agent's real backend limit so "
              "escalation volume drops as the agent earns higher rungs.",
     ),
-    error_rate: Optional[float] = typer.Option(
+    error_rate: float | None = typer.Option(
         None, "--error-rate",
         help="Fraction of decisions the agent gets deliberately wrong (0.0-1.0). "
              "Defaults to the phase's rate from PHASE_ERROR_RATES: "
@@ -139,7 +137,7 @@ def run(
     ),
     api_url: str = typer.Option(DEFAULT_API_BASE_URL, help="Backend API base URL"),
     submit: bool = typer.Option(False, "--submit/--no-submit", help="Submit invoices to backend API"),
-    fixture: Optional[Path] = typer.Option(None, help="Load invoices from fixture file instead of generating"),
+    fixture: Path | None = typer.Option(None, help="Load invoices from fixture file instead of generating"),
 ) -> None:
     """Run an agent over invoices and report accuracy metrics."""
 
@@ -205,13 +203,40 @@ def arc(
         True, "--auto-approve/--wait-for-human",
         help="Auto-approve increases (unattended demo) or pause for a human to approve.",
     ),
+    submit: bool = typer.Option(
+        False, "--submit/--no-submit",
+        help="Also POST every decision (and every escalation's ruling) to a real backend.",
+    ),
+    api_url: str = typer.Option(DEFAULT_API_BASE_URL, "--api-url", help="Backend API base URL"),
 ) -> None:
-    """Run the full ten-beat demo arc: climb, collapse, clawback, recover."""
+    """Run the full ten-beat demo arc: climb, collapse, clawback, recover.
+
+    Offline by default: the arc evaluates its own in-memory decisions, so it
+    needs no backend and reproduces exactly. `--submit` additionally POSTs
+    every decision to a real backend and rules on every escalation. That is a
+    side effect only -- the story printed above the submission summary is the
+    same either way -- so a submission failure shows up as a failure count
+    rather than as a different demo.
+    """
+    from simulator.api_client import APIClient
     from simulator.arc import ArcRunner
 
-    ArcRunner(
-        agent_id=agent_id, seed=seed, count=count, auto_approve=auto_approve
-    ).run()
+    client = None
+    if submit:
+        client = APIClient(base_url=api_url)
+        if not client.health_check():
+            console.print(f"[red]No backend reachable at {api_url}.[/] "
+                          "Start it, or drop --submit to run offline.")
+            raise typer.Exit(1)
+
+    try:
+        ArcRunner(
+            agent_id=agent_id, seed=seed, count=count,
+            auto_approve=auto_approve, api_client=client,
+        ).run()
+    finally:
+        if client is not None:
+            client.close()
 
 
 # ---------------------------------------------------------------------------
@@ -234,7 +259,7 @@ def validate(
     for i, inv_data in enumerate(invoices_data):
         try:
             Invoice(**inv_data)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - collect every bad invoice, whatever the cause
             errors.append(f"Invoice {i}: {exc}")
 
     if errors:
@@ -297,7 +322,7 @@ def smoke_test(
             ok = 0.85 <= acc <= 0.95
         else:
             ok = acc < 0.85  # Should be clearly worse
-        status = "[green]✓[/]" if ok else "[red]✗ ADJUST KNOBS[/]"
+        status = "[green][OK][/]" if ok else "[red][ADJUST KNOBS][/]"
         t.add_row(
             phase_name,
             str(r.total_invoices),

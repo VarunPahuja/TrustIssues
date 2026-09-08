@@ -11,19 +11,17 @@ endpoint, a nested body, or ESCALATE ground truth, this test fails.
 
 from __future__ import annotations
 
-import sys
 import os
+import sys
 from decimal import Decimal
-
-import pytest
 
 _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
 from shared.enums import Action
-from simulator.models import Invoice, AgentOutcome, SimulationPhase
-from simulator.api_client import APIClient
+
+from simulator.models import AgentOutcome, Invoice
 
 
 class TestDecisionPayloadContract:

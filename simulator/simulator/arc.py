@@ -50,16 +50,17 @@ if _trust_root not in sys.path:
     sys.path.insert(0, _trust_root)
 
 from rich.console import Console
-
 from shared.constants import AUTONOMY_FLOOR
 from shared.contracts import AgentContext, DecisionRecord
-from shared.enums import AgentState
+from shared.enums import Action, AgentState
+from trust.trust_engine.evaluate import evaluate
+
 from simulator.agents.scripted import ScriptedAgent
+from simulator.api_client import APIClient
 from simulator.constants import DEFAULT_SEED, PHASE_ERROR_RATES
 from simulator.distributions import get_params
 from simulator.generator import InvoiceGenerator
 from simulator.models import Invoice, SimulationPhase
-from trust.trust_engine.evaluate import evaluate
 
 console = Console()
 
@@ -80,16 +81,25 @@ class Beat:
 def default_script(count: int) -> list[Beat]:
     """The ten beats: climb, collapse, claw back, recover, climb again.
 
-    Recovery gets extra runway because the degraded phase's mistakes stay in
-    the lifetime history and have to be diluted by clean decisions before the
-    trust score can clear the threshold again.
+    Recovery is split deliberately. The degraded phase's mistakes stay in the
+    lifetime history and have to be diluted by clean decisions before the trust
+    score can clear the threshold again, so 10a is given only enough runway to
+    show clear improvement while still falling short: it reports
+    TRUST_BELOW_THRESHOLD and holds. 10b then supplies the rest and earns the
+    rung back. That "recovering, but not yet" beat is the point of splitting
+    them -- it shows the threshold is a real gate rather than a formality, and
+    that a clawback cannot be undone simply by waiting.
+
+    The split is calibrated against the default count of 200, where 10a lands
+    at a trust score of 69.2 against a threshold of 70.0. Widening 10a to a
+    full `count * 2` pushes it to 70.3 and the beat disappears.
     """
     return [
         Beat("1-3  earning trust at the floor", SimulationPhase.GOOD, count),
         Beat("4-6  first rung earned", SimulationPhase.GOOD, count),
         Beat("6b   climbing again", SimulationPhase.GOOD, count),
         Beat("7-9  degradation injected", SimulationPhase.DEGRADED, count),
-        Beat("10a  recovery begins", SimulationPhase.RECOVERY, count * 2),
+        Beat("10a  recovery begins", SimulationPhase.RECOVERY, count * 3 // 4),
         Beat("10b  recovery continues", SimulationPhase.RECOVERY, count * 3),
     ]
 
@@ -109,12 +119,25 @@ class ArcRunner:
         count: int = 200,
         auto_approve: bool = True,
         run_id: str = "arc",
+        api_client: APIClient | None = None,
     ) -> None:
         self.agent_id = agent_id
         self.seed = seed
         self.count = count
         self.auto_approve = auto_approve
         self.run_id = run_id
+
+        # Online mode. Submission is deliberately a SIDE EFFECT: the arc still
+        # evaluates from its own in-memory records, so the story it tells is
+        # identical whether or not a backend is attached. That is what keeps
+        # the demo reproducible while still proving the ingest path works.
+        # Driving the backend's own ladder (generating recommendations and
+        # letting it move the limit) is a separate step, not this one.
+        self.api_client = api_client
+        self.submitted: int = 0
+        self.ruled: int = 0
+        self.submit_failures: list[str] = []
+        self.submitted_ids: list[str] = []
 
         # Ladder state the backend would normally hold.
         self.limit: int = AUTONOMY_FLOOR
@@ -161,10 +184,70 @@ class ArcRunner:
         )
         for invoice in invoices:
             outcome = agent.decide(invoice)
-            self.records.append(self._to_record(invoice, outcome))
+            record = self._to_record(invoice, outcome, agent)
+            self.records.append(record)
+            if self.api_client is not None:
+                self._submit(invoice, outcome, record)
 
-    def _to_record(self, invoice: Invoice, outcome) -> DecisionRecord:
+    def _submit(self, invoice: Invoice, outcome, record: DecisionRecord) -> None:
+        """POST one decision, and its ruling if it was escalated.
+
+        A failure is collected, never raised: one rejected decision must not
+        abort a 1,500-decision arc, and the count of failures is itself the
+        result we care about — a run that drops decisions is not reproducible.
+        """
+        try:
+            response = self.api_client.submit_decision(
+                invoice,
+                outcome,
+                self.agent_id,
+                reason=f"{self.run_id} seed={self.seed} seq={record.sequence}",
+                recommended_action=record.recommended_action,
+            )
+        except Exception as exc:  # noqa: BLE001 - a failed submit is recorded, not fatal
+            self.submit_failures.append(f"{record.decision_id}: {type(exc).__name__}: {exc}")
+            return
+
+        self.submitted += 1
+        decision_id = response.get("decision_id")
+        if decision_id:
+            self.submitted_ids.append(decision_id)
+
+        # An escalation carries a human ruling in this arc, so send it too —
+        # without it the backend's own trust evaluation would drop the
+        # human-agreement component even though the evidence exists locally.
+        if record.human_ruling is None or not decision_id:
+            return
+        try:
+            self.api_client.submit_ruling(
+                decision_id,
+                record.human_ruling,
+                reason=f"{self.run_id} reviewer ruling seq={record.sequence}",
+            )
+            self.ruled += 1
+        except Exception as exc:  # noqa: BLE001 - a failed ruling is recorded, not fatal
+            self.submit_failures.append(f"{decision_id} ruling: {type(exc).__name__}: {exc}")
+
+    def _to_record(self, invoice: Invoice, outcome, agent: ScriptedAgent) -> DecisionRecord:
         seq = len(self.records)
+        # An escalation is the agent deferring to a human, so it carries both
+        # halves of the human-agreement evidence: what the agent would have
+        # done (`recommended_action`) and what the human decided
+        # (`human_ruling`). Without both, shared.contracts.DecisionRecord
+        # .has_human_ruling is False and the pair is excluded from the trust
+        # score entirely — which is why every beat used to report
+        # AGREEMENT_EVIDENCE_INSUFFICIENT and WEIGHTS_RENORMALISED.
+        #
+        # The human is modelled as the reference standard: they rule the way
+        # ground truth says. Agreement therefore measures whether the agent's
+        # own judgement matches the reviewer's, and it falls in the degraded
+        # phase because the agent's advice degrades with it.
+        recommended_action = None
+        human_ruling = None
+        if outcome.action is Action.ESCALATE:
+            recommended_action = agent.recommend(invoice)
+            human_ruling = invoice.ground_truth_decision
+
         return DecisionRecord(
             decision_id=f"{self.run_id}-{seq:05d}",
             sequence=seq,
@@ -174,6 +257,8 @@ class ArcRunner:
             ground_truth=invoice.ground_truth_decision,
             agent_id=self.agent_id,
             decided_at=None,                 # never read the clock
+            recommended_action=recommended_action,
+            human_ruling=human_ruling,
         )
 
     # ------------------------------------------------------------------
@@ -228,6 +313,31 @@ class ArcRunner:
             self._print_row(beat, te, outcome)
 
         console.print(f"\n[bold]Final autonomy limit:[/] INR {self.limit}\n")
+
+        if self.api_client is not None:
+            self._print_submission_summary()
+
+    def _print_submission_summary(self) -> None:
+        """What actually reached the backend.
+
+        The number that matters is failures: a run that silently drops
+        decisions cannot be called reproducible, whatever the arc printed
+        above from its own in-memory copy.
+        """
+        expected = len(self.records)
+        escalations = sum(1 for r in self.records if r.human_ruling is not None)
+        console.print("[bold]Backend submission[/]")
+        console.print(f"  decisions  {self.submitted}/{expected} accepted")
+        console.print(f"  rulings    {self.ruled}/{escalations} accepted")
+        if self.submit_failures:
+            console.print(f"  [red]failures  {len(self.submit_failures)}[/]")
+            for failure in self.submit_failures[:10]:
+                console.print(f"    - {failure}")
+            if len(self.submit_failures) > 10:
+                console.print(f"    ... and {len(self.submit_failures) - 10} more")
+        else:
+            console.print("  [green]failures   0 - nothing dropped[/]")
+        console.print()
 
     # ------------------------------------------------------------------
     # Reporting

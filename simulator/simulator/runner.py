@@ -27,10 +27,10 @@ WILSON LOWER BOUND:
 
 from __future__ import annotations
 
-import sys
 import os
+import sys
+from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Optional, Callable
 
 _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if _repo_root not in sys.path:
@@ -40,12 +40,23 @@ if _trust_root not in sys.path:
     sys.path.insert(0, _trust_root)
 
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
-
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+)
 from shared.enums import Action
-from simulator.models import AgentOutcome, Invoice, SimulationRunConfig, SimulationRunResult
 from trust.trust_engine.stats.wilson import wilson_lower_bound
+
 from simulator.api_client import APIClient
+from simulator.models import (
+    AgentOutcome,
+    Invoice,
+    SimulationRunConfig,
+    SimulationRunResult,
+)
 
 console = Console()
 
@@ -66,8 +77,8 @@ class SimulationRunner:
         self,
         config: SimulationRunConfig,
         agent,  # AgentProtocol
-        api_client: Optional[APIClient] = None,
-        on_progress: Optional[Callable[[int, int], None]] = None,
+        api_client: APIClient | None = None,
+        on_progress: Callable[[int, int], None] | None = None,
     ) -> None:
         self.config = config
         self.agent = agent
@@ -98,20 +109,16 @@ class SimulationRunner:
 
             for i, invoice in enumerate(invoices):
                 try:
-                    record = self._process_one(invoice, result)
+                    self._process_one(invoice, result)
                     progress.advance(task)
                     if self.on_progress:
                         self.on_progress(i + 1, len(invoices))
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 - one bad invoice must not abort the run
                     result.errors.append(
                         f"Invoice {invoice.invoice_id}: {type(exc).__name__}: {exc}"
                     )
                     progress.advance(task)
 
-        # Final statistics
-        result.completed_at = datetime.now(UTC)
-        if result.total_invoices > 0:
-          acted = result.total_invoices - result.escalated_count
         # Final statistics
         result.completed_at = datetime.now(UTC)
         acted = result.total_invoices - result.escalated_count
@@ -160,7 +167,7 @@ class SimulationRunner:
             try:
                 reason = f"sim-run {self.config.seed} invoice {invoice.invoice_id}"
                 self.api_client.submit_decision(invoice, record, self.config.agent_id, reason)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - a failed submit is recorded, not fatal
                 result.errors.append(f"API submit failed for {invoice.invoice_id}: {exc}")
 
         return record

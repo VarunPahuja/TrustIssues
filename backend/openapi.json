@@ -377,6 +377,17 @@
             "minLength": 1,
             "title": "Reason",
             "type": "string"
+          },
+          "recommended_action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Action"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What the agent would have done had it been allowed to act. Only meaningful when `action` is ESCALATE: `shared.contracts.DecisionRecord.has_human_ruling` requires both this and a later `human_ruling` before the pair counts toward human agreement."
           }
         },
         "required": [
@@ -465,6 +476,27 @@
           "human_ruling"
         ],
         "title": "DecisionRecordOut",
+        "type": "object"
+      },
+      "DecisionRuling": {
+        "description": "Request body for `POST /api/v1/decisions/{decision_id}/ruling`.\n\nRecords what a human decided about an escalated decision. Only ADMIN or\nREVIEWER may call this (`app/deps.py`) \u2014 ruling on an escalation is\nREVIEWER's job, the same reasoning as reviewing an audit sample\n(ADR-0009); AUDITOR stays read-only.\n\nA ruling is only half of the evidence: `human_agreement` compares it\nagainst the agent's own `recommended_action`, so a decision ingested\nwithout one can be ruled on but will not contribute to the trust score.",
+        "properties": {
+          "reason": {
+            "description": "Why the human ruled this way",
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "ruling": {
+            "$ref": "#/components/schemas/Action",
+            "description": "The human's verdict: APPROVE or REJECT. Never ESCALATE."
+          }
+        },
+        "required": [
+          "ruling",
+          "reason"
+        ],
+        "title": "DecisionRuling",
         "type": "object"
       },
       "Direction": {
@@ -2546,6 +2578,105 @@
           }
         },
         "summary": "Get Decision",
+        "tags": [
+          "decisions"
+        ]
+      }
+    },
+    "/api/v1/decisions/{decision_id}/ruling": {
+      "post": {
+        "description": "Record a human's ruling on one escalated decision. REVIEWER or ADMIN only.\n\nThis is the write path for `decisions.human_ruling`, and the only one:\n`POST /api/v1/decisions` deliberately leaves it null, because an agent\ncannot rule on its own escalation.\n\nEscalating is the agent deferring to a human, so a ruling is the answer to\nthat deferral \u2014 which is why only an ESCALATE decision can be ruled on, and\nwhy the ruling itself must be APPROVE or REJECT. `shared.contracts.\nDecisionRecord.human_agreed` then compares the ruling against the agent's\nown `recommended_action`, and `trust_engine.stats.rates.human_agreement`\naggregates those comparisons over ruled escalations only.\n\nA decision ingested without a `recommended_action` can still be ruled on \u2014\nthe ruling is a real fact worth recording \u2014 but the pair contributes\nnothing to human agreement, since there is no recommendation to compare\nagainst. `has_human_ruling` requires both halves.\n\nRules once. A second ruling is a 409 rather than a silent overwrite: the\naudit chain records what a human decided, and decisions already evaluated\nagainst it must not change underneath that evidence.",
+        "operationId": "rule_on_decision_api_v1_decisions__decision_id__ruling_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "decision_id",
+            "required": true,
+            "schema": {
+              "title": "Decision Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-User-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Role"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRuling"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionRecordOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "The current role may not perform this action."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "No resource with that id."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "The resource is not in a state this action applies to."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rule On Decision",
         "tags": [
           "decisions"
         ]
