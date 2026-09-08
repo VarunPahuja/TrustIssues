@@ -47,4 +47,32 @@ class DecisionCreate(BaseModel):
     action: Action
     ground_truth: Action
     agent_id: str
+    recommended_action: Action | None = Field(
+        default=None,
+        description=(
+            "What the agent would have done had it been allowed to act. Only "
+            "meaningful when `action` is ESCALATE: `shared.contracts."
+            "DecisionRecord.has_human_ruling` requires both this and a later "
+            "`human_ruling` before the pair counts toward human agreement."
+        ),
+    )
     reason: str = Field(min_length=1, description="Why this decision is being submitted")
+
+
+class DecisionRuling(BaseModel):
+    """Request body for `POST /api/v1/decisions/{decision_id}/ruling`.
+
+    Records what a human decided about an escalated decision. Only ADMIN or
+    REVIEWER may call this (`app/deps.py`) — ruling on an escalation is
+    REVIEWER's job, the same reasoning as reviewing an audit sample
+    (ADR-0009); AUDITOR stays read-only.
+
+    A ruling is only half of the evidence: `human_agreement` compares it
+    against the agent's own `recommended_action`, so a decision ingested
+    without one can be ruled on but will not contribute to the trust score.
+    """
+
+    ruling: Action = Field(
+        description="The human's verdict: APPROVE or REJECT. Never ESCALATE."
+    )
+    reason: str = Field(min_length=1, description="Why the human ruled this way")
