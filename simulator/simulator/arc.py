@@ -80,16 +80,25 @@ class Beat:
 def default_script(count: int) -> list[Beat]:
     """The ten beats: climb, collapse, claw back, recover, climb again.
 
-    Recovery gets extra runway because the degraded phase's mistakes stay in
-    the lifetime history and have to be diluted by clean decisions before the
-    trust score can clear the threshold again.
+    Recovery is split deliberately. The degraded phase's mistakes stay in the
+    lifetime history and have to be diluted by clean decisions before the trust
+    score can clear the threshold again, so 10a is given only enough runway to
+    show clear improvement while still falling short: it reports
+    TRUST_BELOW_THRESHOLD and holds. 10b then supplies the rest and earns the
+    rung back. That "recovering, but not yet" beat is the point of splitting
+    them -- it shows the threshold is a real gate rather than a formality, and
+    that a clawback cannot be undone simply by waiting.
+
+    The split is calibrated against the default count of 200, where 10a lands
+    at a trust score of 69.2 against a threshold of 70.0. Widening 10a to a
+    full `count * 2` pushes it to 70.3 and the beat disappears.
     """
     return [
         Beat("1-3  earning trust at the floor", SimulationPhase.GOOD, count),
         Beat("4-6  first rung earned", SimulationPhase.GOOD, count),
         Beat("6b   climbing again", SimulationPhase.GOOD, count),
         Beat("7-9  degradation injected", SimulationPhase.DEGRADED, count),
-        Beat("10a  recovery begins", SimulationPhase.RECOVERY, count * 2),
+        Beat("10a  recovery begins", SimulationPhase.RECOVERY, count * 3 // 4),
         Beat("10b  recovery continues", SimulationPhase.RECOVERY, count * 3),
     ]
 
