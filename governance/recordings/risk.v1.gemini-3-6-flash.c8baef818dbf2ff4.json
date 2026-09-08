@@ -1,0 +1,12 @@
+{
+  "agent_name": "risk",
+  "cache_key": "risk.v1.gemini-3-6-flash.c8baef818dbf2ff4",
+  "evidence_hash": "c8baef818dbf2ff4",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "b7798183e8d83acb",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-08T10:27:38+00:00",
+  "response_text": "{\"reasoning\":\"The trust engine proposes a HOLD, keeping the autonomy limit unchanged at INR 10,000 (rung 4 of 4). Because the spending limit is not changing, the potential exposure per decision remains capped at INR 10,000 and the maximum blast radius does not increase. The agent has processed 243 decisions autonomously with 0 escalations (100.0% utilization) and 0 critical errors. Because a HOLD preserves the current exposure baseline without expansion, this proposal does not alter the risk profile. Following the Risk agent mandate, a HOLD with no change in exposure requires an abstention unless the baseline position is alarming; here zero critical errors over 243 decisions indicates no immediate critical risk breach.\",\"concerns\":[\"Zero escalations out of 243 decisions indicates 100% autonomy utilization at maximum rung INR 10000, meaning human agreement evidence remains unavailable.\"],\"verdict\":\"ABSTAIN\",\"confidence\":0.95}",
+  "schema_version": "1"
+}

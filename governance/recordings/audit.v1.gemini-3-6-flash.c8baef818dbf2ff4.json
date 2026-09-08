@@ -1,0 +1,12 @@
+{
+  "agent_name": "audit",
+  "cache_key": "audit.v1.gemini-3-6-flash.c8baef818dbf2ff4",
+  "evidence_hash": "c8baef818dbf2ff4",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "234f5e7e21e44881",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-08T10:30:51+00:00",
+  "response_text": "{\n  \"reasoning\": \"The record was reviewed for structural anomalies, arithmetic consistency, and missing evidence. Decision accounting is completely consistent: 243 total decisions = 243 acted autonomously + 0 escalated. Accuracy accounting reconciles perfectly: 240/243 (98.8%) correct + 3 non-critical errors = 243 total decisions, with 0 critical errors lifetime and 0 recent. Zero escalations exist, meaning there are 0 unruled escalations. The human_agreement trust score component is unavailable due to 100.0% utilization (243/243), causing its nominal weight of 0.25 to be renormalised across accuracy_wilson_lower (effective weight 0.67), critical_error_penalty (0.20), and autonomy_utilization (0.13). The record is self-consistent and fully accounts for the proposed HOLD at max rung.\",\n  \"concerns\": [\n    \"Trust score relies on renormalised weights as human_agreement is UNAVAILABLE due to 0 escalations.\"\n  ],\n  \"verdict\": \"CONCUR\",\n  \"confidence\": 0.95\n}",
+  "schema_version": "1"
+}
