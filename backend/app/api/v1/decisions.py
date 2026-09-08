@@ -24,6 +24,7 @@ from app.policy.types import PolicyVersion as PolicyVersionView
 from app.schemas.decision import DecisionCreate, DecisionRecordOut
 from app.schemas.envelope import Page
 from app.schemas.user import Role
+from app.services.audit_sampling import sample_if_selected
 
 router = APIRouter(prefix="/decisions", tags=["decisions"])
 
@@ -177,6 +178,11 @@ def _create_decision(db: Session, body: DecisionCreate) -> Decision:
     )
     db.add(decision)
 
+    # Pull this decision for post-hoc review if its agent's rung says so
+    # (ADR-0009). Same transaction: a sample pointing at a decision that was
+    # rolled back would reference nothing.
+    sample = sample_if_selected(db, decision, agent)
+
     append_entry(
         db,
         id=f"log-{uuid.uuid4().hex[:12]}",
@@ -195,6 +201,10 @@ def _create_decision(db: Session, body: DecisionCreate) -> Decision:
             "within_limit": outcome.within_limit,
             "reason_code": outcome.reason_code,
             "reason": body.reason,
+            # Null when this decision was not pulled for review. ADR-0009's
+            # sampling rate falls as the agent earns rungs, so the proportion
+            # of non-null values here is itself the review burden.
+            "audit_sample_id": sample.id if sample else None,
         },
     )
 
