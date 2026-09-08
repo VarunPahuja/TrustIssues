@@ -55,6 +55,52 @@ DEFAULT_MODEL = "gemini-3.6-flash"
 
 PROVIDER = "gemini"
 
+# Requests per minute per model, read off the AI Studio rate-limit dashboard for this
+# project on 2 Sept 2026 (aistudio.google.com/rate-limit — Google no longer publishes
+# free-tier limits in the docs, so the dashboard is the only source, and it is per
+# *project*, not per key).
+#
+# These differ by a factor of three between models on the same free tier, which is why
+# pacing cannot be one shared constant. The Flash models allow 5 RPM; a 6s floor permits
+# 10, so the previous shared default was silently twice the real limit and only survived
+# because gemini-3.6-flash is slow enough (9.9-33.3s per call) that no run ever reached
+# its own floor. A faster model would have turned that into 429s.
+#
+# RPD is the limit that actually binds a recording run and is not encoded here — the
+# pacer cannot smooth a daily cap. It is recorded alongside for whoever plans the next
+# run: Flash models 20/day, Flash-Lite models 500/day.
+MODEL_RPM: dict[str, int] = {
+    "gemini-3.7-flash": 5,  # 20 RPD
+    "gemini-3.6-flash": 5,  # 20 RPD
+    "gemini-3.5-flash": 5,  # 20 RPD
+    "gemini-3-flash": 5,  # 20 RPD
+    "gemini-2.5-flash": 5,  # 20 RPD — listed, but 404s for keys created recently
+    "gemini-3.5-flash-lite": 15,  # 500 RPD
+    "gemini-3.1-flash-lite": 15,  # 500 RPD
+    "gemini-2.5-flash-lite": 10,  # 20 RPD
+}
+
+# How much of the nominal gap to add as headroom. The dashboard reports peak usage as a
+# whole number against the limit, so a run pacing exactly at the limit has no margin for
+# clock skew or a retry landing inside the same minute. 20% costs seconds on a 24-call
+# run and is the difference between 4/5 and 5/5.
+_PACING_HEADROOM = 1.2
+
+
+def min_interval_for(model: str, *, fallback: float = DEFAULT_MIN_INTERVAL_S) -> float:
+    """Seconds to leave between calls so `model` stays inside its requests-per-minute
+    limit, with headroom.
+
+    An unknown model falls back to the shared default rather than guessing generously:
+    a new model is more likely to be preview-tier and *more* restricted, not less
+    (ai.google.dev/gemini-api/docs/rate-limits). Being too slow costs a recording run
+    some seconds; being too fast costs it the day's quota.
+    """
+    rpm = MODEL_RPM.get(model)
+    if rpm is None or rpm <= 0:
+        return fallback
+    return (60.0 / rpm) * _PACING_HEADROOM
+
 
 @dataclass(frozen=True, slots=True)
 class GeminiConfig:
@@ -70,7 +116,10 @@ class GeminiConfig:
     model: str = DEFAULT_MODEL
     temperature: float = DEFAULT_TEMPERATURE
     timeout_s: float = DEFAULT_TIMEOUT_S
-    min_interval_s: float = DEFAULT_MIN_INTERVAL_S
+    # None means "derive it from the model" (see `pacing_interval_s`). An explicit value
+    # still wins, so tests can pace at zero and a future key on a paid tier can be told
+    # its real limit without editing the table.
+    min_interval_s: float | None = None
 
     @classmethod
     def from_env(cls, **overrides: object) -> GeminiConfig:
@@ -85,6 +134,14 @@ class GeminiConfig:
     @property
     def has_key(self) -> bool:
         return bool(self.api_key)
+
+    @property
+    def pacing_interval_s(self) -> float:
+        """The gap this client actually paces with — explicit if given, else the one
+        `self.model`'s requests-per-minute limit implies."""
+        if self.min_interval_s is not None:
+            return self.min_interval_s
+        return min_interval_for(self.model)
 
     @property
     def endpoint(self) -> str:
@@ -105,7 +162,7 @@ class GeminiClient:
     _pacer: Pacer = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
-        self._pacer = Pacer(self.config.min_interval_s)
+        self._pacer = Pacer(self.config.pacing_interval_s)
 
     @property
     def model(self) -> str:

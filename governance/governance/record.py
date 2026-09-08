@@ -113,6 +113,22 @@ def iter_work(
             yield scenario, agent_name, store.has(key) and not force
 
 
+def _pacing_interval_of(client: LLMClient) -> float:
+    """The gap a client paces with, whichever way its config spells it.
+
+    Gemini derives the gap from the model's requests-per-minute limit, because those
+    differ threefold across models on the same free tier; the other providers carry a
+    flat number. Read through whichever attribute exists rather than asking the client
+    what it is — the estimate is a courtesy, and a provider added later must not be able
+    to break `--dry-run` by naming the field differently.
+    """
+    config = client.config
+    interval = getattr(config, "pacing_interval_s", None)
+    if interval is None:
+        interval = getattr(config, "min_interval_s", None)
+    return float(interval) if interval is not None else 0.0
+
+
 def _first_agent_on(clients: dict[str, LLMClient], provider: str) -> str:
     """Any agent using this provider — they share one client, so any of them will do."""
     return next(name for name, client in clients.items() if client.provider == provider)
@@ -148,7 +164,7 @@ def record_all(
     for _, agent in pending:
         by_provider[clients[agent].provider] = by_provider.get(clients[agent].provider, 0) + 1
     seconds = max(
-        (count * clients[_first_agent_on(clients, p)].config.min_interval_s
+        (count * _pacing_interval_of(clients[_first_agent_on(clients, p)])
          for p, count in by_provider.items()),
         default=0.0,
     )
