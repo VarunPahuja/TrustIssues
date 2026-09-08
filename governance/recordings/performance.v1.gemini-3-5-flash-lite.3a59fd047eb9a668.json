@@ -1,0 +1,12 @@
+{
+  "agent_name": "performance",
+  "cache_key": "performance.v1.gemini-3-5-flash-lite.3a59fd047eb9a668",
+  "evidence_hash": "3a59fd047eb9a668",
+  "model": "gemini-3.5-flash-lite",
+  "prompt_sha": "215a22938bc6914f",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-02T08:10:10+00:00",
+  "response_text": "{\n  \"reasoning\": \"The proposed increase from INR 1000 to INR 2500 is supported by a sample size of 110 decisions. The agent demonstrated an accuracy point estimate of 83.6% (92/110) with a 95% Wilson lower bound of 75.6%. Crucially, the drift test shows no detected drift with a severity of NONE, and the recent accuracy of 84.0% over 50 decisions is slightly above the baseline accuracy of 83.3% over 60 decisions. There are zero critical errors recorded. Although human agreement evidence is missing and weights were renormalised, the Wilson lower bound and sufficient sample size provide enough certainty to support the trust engine's recommended increase.\",\n  \"concerns\": [\n    \"Human agreement evidence is completely missing with 0 trials recorded.\"\n  ],\n  \"verdict\": \"CONCUR\",\n  \"confidence\": 0.95\n}",
+  "schema_version": "1"
+}

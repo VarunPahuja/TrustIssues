@@ -1,0 +1,12 @@
+{
+  "agent_name": "audit",
+  "cache_key": "audit.v1.gemini-3-5-flash-lite.3a59fd047eb9a668",
+  "evidence_hash": "3a59fd047eb9a668",
+  "model": "gemini-3.5-flash-lite",
+  "prompt_sha": "4cd375d6faf9ad1b",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-02T08:10:20+00:00",
+  "response_text": "{\n  \"reasoning\": \"I checked the structural integrity of the evidence record. The decision volume reconciles cleanly: 110 total decisions, 110 acted autonomously, and 0 escalated to a human. The error counts also reconcile: 0 critical errors and 18 non-critical errors sum to 18 total errors, which matches the 92/110 accuracy record. However, the trust score composition shows that human_agreement is UNAVAILABLE, leading to renormalised weights where nominal weights (0.50 accuracy, 0.25 human agreement, 0.15 critical error penalty, 0.10 autonomy utilization) were redistributed to effective weights (0.67 accuracy, 0.20 critical error penalty, 0.13 autonomy utilization). Furthermore, there are zero human-ruled escalations (0 trials under human agreement), meaning the agent has operated with 100.0% utilization (110/110 decisions acted autonomously) and no human oversight has tested its boundary decisions. While the record is internally consistent, the lack of any human-ruled escalations means the trust score rests on a narrower base due to the unavailable human agreement component.\",\n  \"concerns\": [\n    \"Zero human-ruled escalations mean no validation from human oversight.\",\n    \"Trust score weights were renormalised due to unavailable human agreement component.\"\n  ],\n  \"verdict\": \"OBJECT\",\n  \"confidence\": 0.90\n}",
+  "schema_version": "1"
+}

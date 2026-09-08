@@ -1,0 +1,12 @@
+{
+  "agent_name": "compliance",
+  "cache_key": "compliance.v1.gemini-3-5-flash-lite.3a59fd047eb9a668",
+  "evidence_hash": "3a59fd047eb9a668",
+  "model": "gemini-3.5-flash-lite",
+  "prompt_sha": "0feb12bea7956ef5",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-02T08:10:14+00:00",
+  "response_text": "{\n  \"reasoning\": \"As the compliance agent, I checked the proposed change against the stated rules. The current limit is INR 1000 (rung 1 of 4) and the proposed limit is INR 2500 (rung 2), matching the defined ladder of INR 500, INR 1000, INR 2500, INR 5000, and INR 10000. The agent state is active and not restricted or suspended. The direction proposed is INCREASE, and eligible_for_increase is True. Furthermore, the reason codes include COOLDOWN_SATISFIED, and there are no blocking reason codes present. No rules or constraints were violated.\",\n  \"concerns\": [],\n  \"verdict\": \"CONCUR\",\n  \"confidence\": 1.0\n}",
+  "schema_version": "1"
+}

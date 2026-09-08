@@ -1,0 +1,12 @@
+{
+  "agent_name": "risk",
+  "cache_key": "risk.v1.gemini-3-5-flash-lite.3a59fd047eb9a668",
+  "evidence_hash": "3a59fd047eb9a668",
+  "model": "gemini-3.5-flash-lite",
+  "prompt_sha": "b9be3119785129f1",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-02T08:10:05+00:00",
+  "response_text": "{\n  \"reasoning\": \"The proposed limit increases the spending authority from INR 1000 to INR 2500, which represents a multiplier of 2.5 on exposure per error. Out of 110 decisions since the last change, the agent acted autonomously on all 110 and escalated 0 to a human, demonstrating a 100% utilization rate and zero human oversight interventions. However, the agent recorded zero critical errors overall and zero critical errors in the recent window. Because there are no critical errors and exposure scales predictably to INR 2500, the risk profile remains acceptable for this increase.\",\n  \"concerns\": [\n    \"Zero escalations out of 110 decisions indicate 100% autonomy utilization without human oversight.\"\n  ],\n  \"verdict\": \"CONCUR\",\n  \"confidence\": 0.95\n}",
+  "schema_version": "1"
+}
