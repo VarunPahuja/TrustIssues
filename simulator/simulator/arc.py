@@ -52,7 +52,7 @@ if _trust_root not in sys.path:
 from rich.console import Console
 from shared.constants import AUTONOMY_FLOOR
 from shared.contracts import AgentContext, DecisionRecord
-from shared.enums import AgentState
+from shared.enums import Action, AgentState
 from trust.trust_engine.evaluate import evaluate
 
 from simulator.agents.scripted import ScriptedAgent
@@ -161,10 +161,28 @@ class ArcRunner:
         )
         for invoice in invoices:
             outcome = agent.decide(invoice)
-            self.records.append(self._to_record(invoice, outcome))
+            self.records.append(self._to_record(invoice, outcome, agent))
 
-    def _to_record(self, invoice: Invoice, outcome) -> DecisionRecord:
+    def _to_record(self, invoice: Invoice, outcome, agent: ScriptedAgent) -> DecisionRecord:
         seq = len(self.records)
+        # An escalation is the agent deferring to a human, so it carries both
+        # halves of the human-agreement evidence: what the agent would have
+        # done (`recommended_action`) and what the human decided
+        # (`human_ruling`). Without both, shared.contracts.DecisionRecord
+        # .has_human_ruling is False and the pair is excluded from the trust
+        # score entirely — which is why every beat used to report
+        # AGREEMENT_EVIDENCE_INSUFFICIENT and WEIGHTS_RENORMALISED.
+        #
+        # The human is modelled as the reference standard: they rule the way
+        # ground truth says. Agreement therefore measures whether the agent's
+        # own judgement matches the reviewer's, and it falls in the degraded
+        # phase because the agent's advice degrades with it.
+        recommended_action = None
+        human_ruling = None
+        if outcome.action is Action.ESCALATE:
+            recommended_action = agent.recommend(invoice)
+            human_ruling = invoice.ground_truth_decision
+
         return DecisionRecord(
             decision_id=f"{self.run_id}-{seq:05d}",
             sequence=seq,
@@ -174,6 +192,8 @@ class ArcRunner:
             ground_truth=invoice.ground_truth_decision,
             agent_id=self.agent_id,
             decided_at=None,                 # never read the clock
+            recommended_action=recommended_action,
+            human_ruling=human_ruling,
         )
 
     # ------------------------------------------------------------------

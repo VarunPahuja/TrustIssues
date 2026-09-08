@@ -73,6 +73,9 @@ class ScriptedAgent:
         # Only the degraded phase turns these on.
         self.allow_critical_errors = allow_critical_errors
         self._rng = random.Random(seed)
+        # Recommendations draw from their own stream so that adding them does
+        # not shift the decision stream — the arc's existing beats stay put.
+        self._rec_rng = random.Random(seed ^ 0x2EC0)
 
     def decide(self, invoice: Invoice) -> AgentOutcome:
         """Decide on an invoice using simple rules + optional error injection."""
@@ -100,6 +103,38 @@ class ScriptedAgent:
             confidence=0.9,
             from_cache=False,
         )
+
+    def recommend(self, invoice: Invoice) -> Action:
+        """What this agent would have DONE, had its limit not stopped it.
+
+        Only meaningful for a decision it escalated. `shared.contracts.
+        DecisionRecord.has_human_ruling` needs this alongside a human ruling
+        before the pair counts toward human agreement, and `human_agreed`
+        compares the two.
+
+        This is the ordinary rule chain with the tier limit taken out, because
+        the tier limit is the only reason the agent deferred rather than acted.
+        It is wrong at the same `error_rate` as a real decision: a degraded
+        agent gives degraded advice, which is exactly what makes human
+        agreement fall in the degraded phase rather than sitting at 100%.
+        """
+        if invoice.missing_field_names:
+            recommendation = Action.REJECT
+        else:
+            amount = Decimal(invoice.amount)
+            if amount <= 0 or amount > AUTONOMY_LADDER[-1]:
+                recommendation = Action.REJECT
+            else:
+                try:
+                    InvoiceCategory(invoice.category)
+                except ValueError:
+                    recommendation = Action.REJECT
+                else:
+                    recommendation = Action.APPROVE
+
+        if self._rec_rng.random() < self.error_rate:
+            return Action.REJECT if recommendation is Action.APPROVE else Action.APPROVE
+        return recommendation
 
     # ------------------------------------------------------------------
     # Internal decision logic
