@@ -1,7 +1,8 @@
 # Calling governance from the backend
 
-For **VP**. Everything below was run on `vc/recording-fixes` on 1 Sept 2026; the numbers
-are measured, not estimated. Governance owns this file — if something here is wrong,
+For **VP**. The measurements below were run on `vc/recording-fixes` on 1 Sept 2026 and
+are measured, not estimated. Revised 8 Sept, after #25 wired this lane in and while
+#34 (auto-applied clawbacks) was still open. Governance owns this file — if something here is wrong,
 it's my bug, come to me.
 
 ## The whole thing
@@ -119,12 +120,25 @@ These cost me time; they're written down so they don't cost you any.
 
 ## What governance will never do to you
 
-Guaranteed by this lane, enforced in code, not just documented:
+Guaranteed by this lane, enforced in code, not just documented.
+
+**These are guarantees about the `Recommendation` object `recommend()` hands back — not
+about the row you persist.** You own the row. Where the two differ below, that is your
+lane deciding something, working exactly as intended, and not a governance bug. The
+distinction matters because both of the first two fields are ones you legitimately change
+on the way to the database.
 
 - **`status` is always `PENDING`.** Governance cannot approve its own recommendation;
   an increase needs a human (ADR-0004). Nothing here can set `APPROVED`.
+  *What you persist is yours to decide:* ADR-0004 requires a human for an increase and
+  deliberately does not for a clawback, so a `CLAWBACK` row written as `APPROVED` and
+  applied without a human is that ADR being honoured, not this guarantee being broken.
+  Governance still never asked for it.
 - **`clamped` is always `False` and `clamped_from` always `None`.** Clamping is yours.
   Governance never reports itself as clamped.
+  *So a persisted row with `clamped=True` is the hard ceiling working* — it means your
+  `clamp_recommendation` lowered what this lane proposed. Only ever set it from your own
+  clamp, never by copying these fields through.
 - **`proposed_limit` never exceeds `evaluation.recommended_limit`.** There's an
   `AssertionError` guarding it. Your hard ceiling should still be enforced — this lane
   just doesn't rely on being caught.
@@ -171,15 +185,33 @@ I'd rather fix the hierarchy than have you write that tuple. Tell me if you want
 `OpinionParseError` folded under `GovernanceLLMError` and I'll do it in this lane — it's
 a one-line change plus a test, and it makes your handler a single `except`.
 
-## Two things I need from you
+## Both things I needed from you: done (#25, 1 Sept)
 
-1. **Packaging.** I verified the above with `PYTHONPATH` pointing at `governance/`.
-   `governance/pyproject.toml` builds a `governance` package, but nothing installs it
-   into the backend's environment today. Editable install, path entry, or something
-   else — your call, it's your lane's dependency management.
-2. **When you plan to wire it.** Integration checkpoint 1 is today and
-   `backend/app/api/v1/recommendations.py` still serves fixtures. The shapes line up, so
-   this should be a short job — but I'd rather find that out with you than assume it.
+Kept rather than deleted, because the answers are the useful part now.
+
+1. ~~**Packaging.**~~ Settled: CI does `pip install -e governance`, and
+   `backend/pyproject.toml` sets `pythonpath = [".", ".."]` for the test run.
+2. ~~**When you plan to wire it.**~~ Done the same day.
+   `app/services/governance.py:generate_recommendation` calls `recommend()` on real
+   persisted decision history and `app/api/v1/agents.py` exposes it. The shapes did line
+   up — no adaptation was needed, as promised above.
+
+**One thing left, and it is a scope question rather than a bug.** Nothing calls
+`recommend()` in the demo path. `simulator/simulator/arc.py` in offline mode — the
+default, and the mode that proves determinism — reads `direction` straight off the
+`TrustEvaluation` and applies the ladder itself. Online mode does go through your
+endpoints, but `.env` pins `GOVERNANCE_MODE=stub`, and your own
+`test_cached_mode_with_no_matching_recording_returns_503_not_500` records why cached
+cannot work there: real DB-derived evidence matches none of the committed demo-scenario
+recordings.
+
+So the arc demonstrates the ladder correctly and shows hand-written stub reasoning while
+doing it. That is defensible — governance is advisory, so the ladder works without it —
+but it means the recorded Gemini panels are not in the end-to-end flow. Closing it means
+recording the evidence each of the arc's six resolve points actually produces (6 x 4 = 24
+calls), and first verifying that the evidence your `compute_trust_evaluation` derives
+matches what the offline arc computes. Raised at standup 9 Sept as a scope call, not
+something this lane should decide alone.
 
 ## Not built yet
 
