@@ -19,6 +19,7 @@ from shared.enums import OpinionVerdict
 
 from governance.agents.base import AGENT_NAMES
 from governance.agents.llm_backed import opine_via_model, supports_mode
+from governance.llm.base import Pacer
 from governance.llm.errors import (
     GovernanceLLMError,
     LLMAuthError,
@@ -47,6 +48,31 @@ VALID_RESPONSE = json.dumps(
         "confidence": 0.82,
     }
 )
+
+
+
+class _FakeClock:
+    """A clock that only moves when something asks it to.
+
+    `sleep()` advances it by exactly the requested amount, which is the one property a
+    real `time.sleep` will not promise — and the reason the pacer's timing test used to
+    flake.
+    """
+
+    def __init__(self) -> None:
+        self.now = 0.0
+        self.slept: list[float] = []
+
+    def monotonic(self) -> float:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.slept.append(seconds)
+        self.now += seconds
+
+    def advance(self, seconds: float) -> None:
+        """Time passing for a reason other than sleeping — a slow API call, say."""
+        self.now += seconds
 
 
 def _config(**overrides) -> GeminiConfig:
@@ -251,17 +277,38 @@ def test_config_reads_the_key_and_model_from_the_environment(monkeypatch):
 
 
 def test_the_pacer_spaces_calls_by_the_configured_interval():
-    """A burst is what the free tier punishes; the floor is on the gap, not a bucket."""
-    import time
+    """A burst is what the free tier punishes; the floor is on the gap, not a bucket.
 
-    prompt = build_prompt("risk", make_evaluation())
-    client = GeminiClient(config=_config(min_interval_s=0.05))
-    transport = _client_returning(lambda _: httpx.Response(200, json=_ok_envelope()))
+    Asserts on the gaps the pacer *asks for*, against a clock that does not move on its
+    own, rather than on real elapsed time. The old version measured `time.monotonic()`
+    across three calls and asserted `>= 0.10` against a theoretical minimum of exactly
+    0.10 — no margin at all, so a `time.sleep` that returned a hair early failed a pacer
+    that had done nothing wrong. This version cannot flake and checks more: that the
+    first call is not delayed, and that each later one is delayed by the full interval.
+    """
+    clock = _FakeClock()
+    pacer = Pacer(0.05, monotonic=clock.monotonic, sleep=clock.sleep)
 
-    start = time.monotonic()
-    for _ in range(3):
-        client.generate(prompt, client=transport)
-    assert time.monotonic() - start >= 0.10
+    delays = [pacer.wait() for _ in range(3)]
+
+    assert delays[0] == 0.0, "the first call has nothing to wait behind"
+    assert delays[1:] == [0.05, 0.05]
+    assert clock.slept == [0.05, 0.05], "it must actually sleep, not just report a delay"
+    assert clock.now == pytest.approx(0.10)
+
+
+def test_the_pacer_does_not_delay_a_call_that_is_already_late_enough():
+    """Time spent on the request itself counts toward the gap. Sleeping the full interval
+    on top of a call that already took longer than it would double the real spacing and
+    halve a recording run's throughput for nothing."""
+    clock = _FakeClock()
+    pacer = Pacer(0.05, monotonic=clock.monotonic, sleep=clock.sleep)
+
+    pacer.wait()
+    clock.advance(0.2)  # a slow API call, longer than the interval
+
+    assert pacer.wait() == 0.0
+    assert clock.slept == []
 
 
 # --------------------------------------------------------------- recordings
