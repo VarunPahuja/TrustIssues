@@ -23,6 +23,7 @@ from __future__ import annotations
 import re
 import threading
 import time
+from collections.abc import Callable
 from typing import Protocol, runtime_checkable
 
 from governance.prompts.loader import Prompt
@@ -103,22 +104,38 @@ class Pacer:
     permits a burst, and a burst is exactly what a free tier punishes: the first four
     agents would go out instantly and the fifth would be rate-limited. Thread-safe
     because a parallel recording run would otherwise pace nothing at all.
+
+    The clock and the sleep are injectable so a test can assert on the gaps this class
+    *asks for* without waiting for them. Asserting on real elapsed time is what a test of
+    a sleeping object usually does, and it is flaky by construction: the pacer's own
+    guarantee is a floor, so the honest assertion `elapsed >= n * interval` has zero
+    margin above the theoretical minimum and fails whenever `time.sleep` returns a hair
+    early. What is worth pinning is the decision — how long it waited and when it
+    declined to — not the operating system's timekeeping.
     """
 
-    def __init__(self, min_interval: float) -> None:
+    def __init__(
+        self,
+        min_interval: float,
+        *,
+        monotonic: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
         self._min_interval = min_interval
+        self._monotonic = monotonic
+        self._sleep = sleep
         self._lock = threading.Lock()
         self._last_call: float | None = None
 
     def wait(self) -> float:
         """Block until the next call is allowed. Returns the seconds actually slept."""
         with self._lock:
-            now = time.monotonic()
+            now = self._monotonic()
             if self._last_call is None:
                 self._last_call = now
                 return 0.0
             delay = max(0.0, self._min_interval - (now - self._last_call))
             if delay > 0:
-                time.sleep(delay)
-            self._last_call = time.monotonic()
+                self._sleep(delay)
+            self._last_call = self._monotonic()
             return delay
