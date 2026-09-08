@@ -1,0 +1,12 @@
+{
+  "agent_name": "audit",
+  "cache_key": "audit.v1.gemini-3-6-flash.1a421c5f18b4690b",
+  "evidence_hash": "1a421c5f18b4690b",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "13a2cd7717c949f1",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-08T10:26:25+00:00",
+  "response_text": "{\n  \"reasoning\": \"The record was audited for structural completeness, field reconciliation, and internal mathematical consistency. Total decision volume reconciles perfectly: 140 total decisions equals 140 acted decisions plus 0 escalations. Accuracy arithmetic holds across windows: 90 baseline decisions at 100% (90 correct) plus 50 recent decisions at 64.0% (32 correct) equals 122 correct decisions out of 140 total (87.1%). Error counts reconcile fully (122 correct + 18 non-critical errors + 0 critical errors = 140). Trust score weights were renormalised because human agreement was unavailable due to zero escalations, shifting nominal weight (0.25) across available components, which is explicitly reported in the reason codes. The evidence is complete, internally consistent, and supports the trust engine's proposed CLAWBACK.\",\n  \"concerns\": [\n    \"Trust score relies on renormalised weights due to zero human agreement trials (human_agreement unavailable).\"\n  ],\n  \"verdict\": \"CONCUR\",\n  \"confidence\": 0.95\n}",
+  "schema_version": "1"
+}

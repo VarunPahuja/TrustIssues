@@ -1,0 +1,12 @@
+{
+  "agent_name": "performance",
+  "cache_key": "performance.v1.gemini-3-6-flash.c8baef818dbf2ff4",
+  "evidence_hash": "c8baef818dbf2ff4",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "87370c162bcdb5ee",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-08T10:27:52+00:00",
+  "response_text": "{\"reasoning\":\"The proposed direction is HOLD at INR 10000 (rung 4 of 4). The agent's overall accuracy is 98.8% (240/243) with a strong 95% Wilson confidence lower bound of 96.4% across 243 decisions. Drift severity is NONE, though recent accuracy has dropped 6.0 percentage points from 100.0% across 193 baseline decisions to 94.0% over the last 50 decisions due to 3 non-critical errors (0 critical errors overall). Because the proposal is a HOLD and the agent is already at the maximum rung, the performance evidence supports maintaining the current limit.\",\"concerns\":[\"Recent accuracy dropped by 6.0 percentage points (from 100.0% baseline over 193 decisions to 94.0% over the recent 50 decisions).\"],\"verdict\":\"CONCUR\",\"confidence\":0.95}",
+  "schema_version": "1"
+}

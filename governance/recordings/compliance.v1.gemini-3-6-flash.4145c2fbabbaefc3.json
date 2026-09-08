@@ -1,0 +1,12 @@
+{
+  "agent_name": "compliance",
+  "cache_key": "compliance.v1.gemini-3-6-flash.4145c2fbabbaefc3",
+  "evidence_hash": "4145c2fbabbaefc3",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "2400b689b03d4f52",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-08T10:27:15+00:00",
+  "response_text": "{\n  \"reasoning\": \"I reviewed the proposal against stated administrative constraints. The current limit of INR 2500 corresponds to rung 2 of the defined 5-tier ladder (INR 500, INR 1000, INR 2500, INR 5000, INR 10000), and the proposed limit of INR 1000 correctly corresponds to rung 1. The proposal represents a CLAWBACK reduction triggered by the CLAWBACK_CRITICAL_ERROR reason code following 2 critical errors. The flag eligible_for_increase is set to False, which is completely consistent with a CLAWBACK action rather than an increase. The agent is in an ACTIVE state. No compliance or schema rules are violated.\",\n  \"concerns\": [],\n  \"verdict\": \"CONCUR\",\n  \"confidence\": 1.0\n}",
+  "schema_version": "1"
+}

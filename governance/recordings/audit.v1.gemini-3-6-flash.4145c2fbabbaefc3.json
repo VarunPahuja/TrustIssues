@@ -1,0 +1,12 @@
+{
+  "agent_name": "audit",
+  "cache_key": "audit.v1.gemini-3-6-flash.4145c2fbabbaefc3",
+  "evidence_hash": "4145c2fbabbaefc3",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "ba097c72bd6195e7",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-08T10:31:45+00:00",
+  "response_text": "{\n  \"reasoning\": \"I verified the structural consistency of the evidence record. The volume and outcome arithmetic reconciles completely: 150 total decisions equal 150 autonomous decisions plus 0 escalations, and 148 correct decisions plus 2 critical errors (and 0 non-critical) equal 150 total. Examining error distribution reveals that all 2 lifetime critical errors occurred entirely in the recent 50-decision window, where accuracy dropped from 100.0% over the first 100 decisions to 96.0%, validating that the critical drift finding reflects recent operational degradation rather than historical artifact. The trust score weights have been renormalised due to human_agreement being unavailable (0 human-ruled trials), reallocating weight to accuracy_wilson_lower (effective weight 0.67) and critical_error_penalty (effective weight 0.20). The record contains no unruled escalations or mathematical discrepancies.\",\n  \"concerns\": [\n    \"All 2 lifetime critical errors are clustered in the recent 50-decision window.\",\n    \"Human agreement component is unavailable, forcing weight renormalisation onto a narrower base.\"\n  ],\n  \"verdict\": \"CONCUR\",\n  \"confidence\": 0.95\n}",
+  "schema_version": "1"
+}

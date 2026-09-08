@@ -1,0 +1,12 @@
+{
+  "agent_name": "risk",
+  "cache_key": "risk.v1.gemini-3-6-flash.4145c2fbabbaefc3",
+  "evidence_hash": "4145c2fbabbaefc3",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "676c7291ab8491d7",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-08T10:26:34+00:00",
+  "response_text": "{\n  \"reasoning\": \"The trust engine proposes a clawback reducing the agent's decision limit from INR 2,500 to INR 1,000. A reduction in authority strictly reduces financial risk exposure, lowering the maximum potential blast radius of a single bad approval from INR 2,500 to INR 1,000 (a 60% reduction in maximum exposure per decision). Given that the agent has committed 2 critical errors in the recent window out of 150 decisions, restricting exposure is necessary. There is no risk argument against reducing authority.\",\n  \"concerns\": [\n    \"Agent incurred 2 critical errors in the recent window, making authority reduction necessary to limit future loss exposure.\"\n  ],\n  \"verdict\": \"CONCUR\",\n  \"confidence\": 1.0\n}",
+  "schema_version": "1"
+}

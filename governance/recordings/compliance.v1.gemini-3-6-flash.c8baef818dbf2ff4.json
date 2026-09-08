@@ -1,0 +1,12 @@
+{
+  "agent_name": "compliance",
+  "cache_key": "compliance.v1.gemini-3-6-flash.c8baef818dbf2ff4",
+  "evidence_hash": "c8baef818dbf2ff4",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "e8ce25415bf260d7",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-08T10:28:05+00:00",
+  "response_text": "{\"reasoning\":\"I verified the compliance rules and administrative constraints for this recommendation. The agent is in an active state. The current autonomy limit of INR 10000 and proposed limit of INR 10000 both align with rung 4, which is the maximum tier on the stated 5-tier ladder (INR 500, INR 1000, INR 2500, INR 5000, INR 10000). The proposed HOLD direction is consistent with eligible_for_increase being False and the reason code AT_MAX_RUNG. No ladder mismatch, state restriction, or procedural rules are breached.\",\"concerns\":[],\"verdict\":\"CONCUR\",\"confidence\":1.0}",
+  "schema_version": "1"
+}

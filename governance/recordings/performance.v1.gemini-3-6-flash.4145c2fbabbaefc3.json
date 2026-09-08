@@ -1,0 +1,12 @@
+{
+  "agent_name": "performance",
+  "cache_key": "performance.v1.gemini-3-6-flash.4145c2fbabbaefc3",
+  "evidence_hash": "4145c2fbabbaefc3",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "c00bc4588372d799",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-08T10:32:04+00:00",
+  "response_text": "{\"reasoning\":\"The evidence supports the proposed CLAWBACK. The agent's performance shows CRITICAL drift, with recent accuracy dropping to 96.0% over 50 decisions compared to a baseline accuracy of 100.0% over 100 decisions. This degradation is driven by 2 critical errors occurring in the recent window (critical error rate 0.0133). Although overall accuracy is 98.7% with a 95% Wilson interval lower bound of 95.3% over 150 decisions, the recent drop in performance demonstrates a measured degradation that justifies lowering the spending limit.\",\"concerns\":[\"CRITICAL drift detected with recent accuracy falling to 96.0% over 50 decisions from 100.0% baseline\",\"2 critical errors recorded in the recent window\"],\"verdict\":\"CONCUR\",\"confidence\":0.95}",
+  "schema_version": "1"
+}
