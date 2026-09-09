@@ -85,6 +85,16 @@ export function IconSearch({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
+export function IconDemo({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+      <rect x="2" y="4" width="20" height="13" rx="2" />
+      <path d="M8 21h8M12 17v4" />
+      <polygon points="10 8 15 10.5 10 13" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function IconCheckCircle({ className = "w-4 h-4" }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
