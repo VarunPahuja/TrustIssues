@@ -22,6 +22,7 @@ from governance.prompts.schema import OpinionParseError
 from shared.constants import SCHEMA_VERSION, rung_of
 from shared.enums import Direction, OpinionVerdict, RecommendationStatus
 from shared.reason_codes import CLAWBACK_CRITICAL_ERROR, CLAWBACK_DRIFT, RECOMMENDATION_CLAMPED
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.errors import service_unavailable
@@ -30,7 +31,19 @@ from app.models import Recommendation as RecommendationRow
 from app.models.audit_log import append_entry
 from app.policy.ceiling import clamp_recommendation
 from app.schemas.governance import AgentOpinionOut, RecommendationOut
-from app.services.trust import compute_and_persist_trust_evaluation, jsonable
+from app.services.trust import agent_context, compute_and_persist_trust_evaluation, jsonable
+
+
+def _most_recent_recommendation_for(db: Session, agent_id: str) -> RecommendationRow | None:
+    return (
+        db.execute(
+            select(RecommendationRow)
+            .where(RecommendationRow.agent_id == agent_id)
+            .order_by(RecommendationRow.generated_at.desc())
+        )
+        .scalars()
+        .first()
+    )
 
 
 def recommendation_out(row: RecommendationRow) -> RecommendationOut:
@@ -98,6 +111,24 @@ def generate_recommendation(db: Session, agent: Agent) -> RecommendationOut:
     hand-seeded agent-03 clawback use precisely this shape — no `Approval`
     row, `status=APPROVED` directly, `created_by="system"`). This function
     matches that established precedent rather than inventing a new one.
+
+    A `CLAWBACK` is only ever *applied* once per piece of evidence.
+    `DriftSeverity.CRITICAL`/`CONFIRMED` (`trust/trust_engine/stats/drift.py`)
+    are stateless — each asks only "is there a critical error/confirmed
+    drift in the current decision window," never "have I already acted on
+    this" — so calling `POST /agents/{id}/recommendations` twice with no new
+    decisions in between used to claw back twice off the exact same
+    critical error: confirmed live, 2,500 -> 1,000 -> 500. Guarded below by
+    `agent_context(db, agent).decisions_since_last_change == 0` — the same
+    signal the no-op-HOLD-approval fix and the floor no-op already used —
+    "do not act twice on the same evidence" applied a third time, not a new
+    principle. The guard is on `direction is CLAWBACK` generically, not on
+    which reason code produced it, so it covers a drift-confirmed cascade
+    (`CLAWBACK_DRIFT`) exactly the same way it covers a critical-error one
+    (`CLAWBACK_CRITICAL_ERROR`): a repeat call with an unchanged decision
+    window re-runs the same two-proportion z-test over the same recent and
+    baseline windows and gets the same CONFIRMED verdict, for the same
+    reason a repeat critical-error check finds the same error still there.
     """
     evaluation, trust_evaluation_id = compute_and_persist_trust_evaluation(db, agent)
 
@@ -124,6 +155,26 @@ def generate_recommendation(db: Session, agent: Agent) -> RecommendationOut:
     rec_id = f"rec-{agent.id}-{uuid.uuid4().hex[:10]}"
 
     is_clawback = proposal.direction is Direction.CLAWBACK
+
+    if is_clawback and agent_context(db, agent).decisions_since_last_change == 0:
+        # Cascade guard (see docstring above). No new evidence has arrived
+        # since the last policy change, so this CLAWBACK signal is the same
+        # one that already produced that change — re-applying it would drop
+        # a second rung off nothing new. Returning the most recent
+        # recommendation instead of minting a new row: persisting a fresh
+        # CLAWBACK/APPROVED recommendation here, even with the
+        # policy-version write skipped, would still misrepresent what
+        # happened — a new recommendation_id claiming direction=CLAWBACK,
+        # status=APPROVED implies a fresh action was taken, and none was.
+        existing = _most_recent_recommendation_for(db, agent.id)
+        if existing is not None:
+            return recommendation_out(existing)
+        # No prior recommendation exists — shouldn't be reachable, since a
+        # zero-decisions-since-last-change CLAWBACK implies a policy version
+        # already exists, and every non-seed policy version traces back to
+        # one. Fall through and apply for real rather than risk a 500 over
+        # an unreachable case.
+
     status = RecommendationStatus.APPROVED if is_clawback else proposal.status
 
     row = RecommendationRow(
