@@ -14,6 +14,7 @@ import {
   IconApprovals,
   IconAudit,
   IconSimulation,
+  IconDemo,
 } from "./Icons";
 
 const NAV = [
@@ -21,6 +22,7 @@ const NAV = [
   { href: "/approvals",  label: "Approvals",   Icon: IconApprovals,  badgeKey: "approvals" },
   { href: "/audit",      label: "Audit Trail", Icon: IconAudit,      badgeKey: null },
   { href: "/simulation", label: "Simulation",  Icon: IconSimulation, badgeKey: null },
+  { href: "/demo",       label: "Demo Console", Icon: IconDemo,      badgeKey: null },
 ];
 
 export function Sidebar() {

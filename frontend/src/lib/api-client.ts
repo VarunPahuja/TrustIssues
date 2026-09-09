@@ -20,6 +20,8 @@ import type {
   AuditLogEntry,
   AuditSample,
   DecisionRecordOut,
+  DecisionCreate,
+  DecisionRuling,
   PaginatedResponse,
   AuditLogResponse,
   SimulationRunCreate,
@@ -118,6 +120,15 @@ export const agentsApi = {
     pageSize = 100
   ): Promise<PaginatedResponse<PolicyVersionOut>> =>
     get(`/agents/${agentId}/policy-versions?page=${page}&page_size=${pageSize}`),
+
+  /**
+   * POST /agents/{id}/recommendations → RecommendationOut
+   * Generates a fresh recommendation from the agent's real, current decision
+   * history. A CLAWBACK comes back already `status: APPROVED` — applied in
+   * the same call, no separate approve step (ADR-0004).
+   */
+  generateRecommendation: (agentId: string): Promise<Recommendation> =>
+    post(`/agents/${agentId}/recommendations`, undefined),
 };
 
 // ---------------------------------------------------------------------------
@@ -133,6 +144,18 @@ export const decisionsApi = {
   /** GET /decisions/{id} → DecisionRecordOut */
   get: (decisionId: string): Promise<DecisionRecordOut> =>
     get(`/decisions/${decisionId}`),
+
+  /** POST /decisions → DecisionRecordOut. ADMIN only (defaults to ADMIN when no role header is sent). */
+  create: (body: DecisionCreate): Promise<DecisionRecordOut> =>
+    post("/decisions", body),
+
+  /**
+   * POST /decisions/{id}/ruling → DecisionRecordOut
+   * REVIEWER or ADMIN only. Only an ESCALATE decision can be ruled on;
+   * rules once — a second call is a 409.
+   */
+  rule: (decisionId: string, body: DecisionRuling): Promise<DecisionRecordOut> =>
+    post(`/decisions/${decisionId}/ruling`, body),
 };
 
 // ---------------------------------------------------------------------------
