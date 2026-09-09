@@ -30,7 +30,7 @@ from app.models import Recommendation as RecommendationRow
 from app.models.audit_log import append_entry
 from app.policy.ceiling import clamp_recommendation
 from app.schemas.governance import AgentOpinionOut, RecommendationOut
-from app.services.trust import compute_and_persist_trust_evaluation, jsonable
+from app.services.trust import agent_context, compute_and_persist_trust_evaluation, jsonable
 
 
 def recommendation_out(row: RecommendationRow) -> RecommendationOut:
@@ -153,13 +153,31 @@ def generate_recommendation(db: Session, agent: Agent) -> RecommendationOut:
             if CLAWBACK_CRITICAL_ERROR in evaluation.reason_codes
             else CLAWBACK_DRIFT
         )
-        # Same "only write when the limit actually changes" rule
+        # Two guards, not one.
+        #
+        # The first is the "only write when the limit actually changes" rule
         # app/api/v1/recommendations.py's approve path already applies to a
         # no-op HOLD approval: an agent already at AUTONOMY_FLOOR clawing
         # back further is still floor -> floor, and writing a redundant
         # policy version would reset decisions_since_last_change for a
         # change that didn't happen.
-        if final_limit != agent.current_limit:
+        #
+        # The second stops the same evidence being punished twice.
+        # DriftSeverity.CRITICAL is stateless — it asks only whether a
+        # critical error sits in the last CRITICAL_ERROR_WINDOW acted
+        # decisions (trust/trust_engine/stats/drift.py), with no memory of
+        # whether a clawback already answered it. Generating a recommendation
+        # is a read-shaped operation callers repeat freely: a dashboard
+        # refresh, a retry, a simulator loop. Without this, two calls with no
+        # new decisions between them drop two rungs for one error, which
+        # contradicts ADR-0004's "exactly one rung" and could walk an agent to
+        # the floor on a single mistake.
+        #
+        # decisions_since_last_change == 0 means the limit moved and nothing
+        # has happened since, so there is no new evidence to act on.
+        since_change = agent_context(db, agent).decisions_since_last_change
+        already_acted_on_this_evidence = since_change == 0
+        if final_limit != agent.current_limit and not already_acted_on_this_evidence:
             policy_version_id = f"pv-{uuid.uuid4().hex[:12]}"
             apply_policy_version(
                 db,

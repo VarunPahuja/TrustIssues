@@ -30,7 +30,8 @@ from shared.enums import Direction, OpinionVerdict, RecommendationStatus
 
 from governance.agents import AGENT_MODULES, AGENT_NAMES
 from governance.agents.llm_backed import opine_with_provenance
-from governance.modes import CACHED, LIVE, resolve_mode
+from governance.llm.errors import RecordingMissError
+from governance.modes import CACHED, LIVE, STUB, resolve_mode, stub_fallback_allowed
 from governance.state import GovernanceState
 
 
@@ -52,7 +53,31 @@ def _agent_node(agent_name: str):
     def node(state: GovernanceState) -> dict:
         mode = state["mode"]
         if mode in (CACHED, LIVE):
-            result = opine_with_provenance(agent_name, state["evaluation"], mode)
+            try:
+                result = opine_with_provenance(agent_name, state["evaluation"], mode)
+            except RecordingMissError:
+                # A recording answers exactly one question: its key is a hash of
+                # the whole prompt, so it replays only for the evidence it was
+                # made from. Any evaluation the recordings were not built
+                # against therefore misses, which makes cached mode unusable for
+                # anything except the recorded scenarios.
+                #
+                # Raising is the default and stays the default: a silent stub
+                # substitution would hide that a cached call had no recording,
+                # which is exactly the failure this lane chose to make loud.
+                #
+                # An operator can opt into falling back — for a demo that must
+                # not stop on a miss — and the recommendation then says
+                # "cached+stub" in `governance_mode` and in its rationale, the
+                # same way live already labels a fallback to cached. The
+                # decision itself is unaffected either way: the trust engine
+                # sets the direction, the panel only writes it up.
+                if not stub_fallback_allowed():
+                    raise
+                return {
+                    "opinions": [module.opine(state["evaluation"], STUB)],
+                    "fell_back": [agent_name],
+                }
             return {
                 "opinions": [result.opinion],
                 "fell_back": [agent_name] if result.fell_back else [],
@@ -110,7 +135,8 @@ def _aggregate(state: GovernanceState) -> dict:
     # must not claim to be — a recording is a real response to the same evidence, but it
     # was made earlier, and a reviewer deciding whether to trust this deserves to know.
     fell_back = tuple(n for n in AGENT_NAMES if n in set(state.get("fell_back", [])))
-    effective_mode = f"{state['mode']}+{CACHED}" if fell_back else state["mode"]
+    fallback_target = CACHED if state["mode"] == LIVE else STUB
+    effective_mode = f"{state['mode']}+{fallback_target}" if fell_back else state["mode"]
 
     recommendation = Recommendation(
         recommendation_id=uuid.uuid4().hex,
@@ -118,7 +144,9 @@ def _aggregate(state: GovernanceState) -> dict:
         direction=direction,
         proposed_limit=proposed_limit,
         proposed_rung=rung_of(proposed_limit),
-        rationale=_rationale(evaluation, opinions, dissenters, direction, fell_back),
+        rationale=_rationale(
+            evaluation, opinions, dissenters, direction, fell_back, fallback_target
+        ),
         opinions=opinions,
         has_dissent=has_dissent,
         confidence=round(confidence, 4),
@@ -141,6 +169,7 @@ def _rationale(
     dissenters: tuple[AgentOpinion, ...],
     direction: Direction,
     fell_back: tuple[str, ...] = (),
+    fallback_target: str = CACHED,
 ) -> str:
     """One paragraph a human reviewer reads before deciding.
 
@@ -176,10 +205,20 @@ def _rationale(
         # reviewer reads. A live run that quietly served recordings would look
         # identical to one that did not.
         names = ", ".join(fell_back)
-        parts.append(
-            f"Live call failed for {names}; served from recorded responses to the same "
-            f"evidence."
-        )
+        if fallback_target == CACHED:
+            parts.append(
+                f"Live call failed for {names}; served from recorded responses to the same "
+                f"evidence."
+            )
+        else:
+            # Named explicitly. A reviewer needs to know this paragraph was
+            # written from a template rather than by a model, because that is
+            # the difference between reasoning about this evidence and
+            # describing it.
+            parts.append(
+                f"No recording matched this evidence for {names}; served from stub "
+                f"reasoning instead."
+            )
 
     if direction is not Direction.CLAWBACK:
         parts.append("Requires human authorization before any limit changes.")

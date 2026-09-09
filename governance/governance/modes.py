@@ -37,3 +37,22 @@ def resolve_mode(mode: str | None = None) -> str:
     if chosen not in VALID_MODES:
         raise ValueError(f"unknown GOVERNANCE_MODE {chosen!r}; expected one of {VALID_MODES}")
     return chosen
+
+
+STUB_FALLBACK_ENV = "GOVERNANCE_ALLOW_STUB_FALLBACK"
+
+
+def stub_fallback_allowed() -> bool:
+    """Whether a cached-mode recording miss may fall back to stub reasoning.
+
+    Off by default, deliberately. A recording miss means the panel was asked a
+    question nothing had answered, and quietly answering it with hand-written
+    text would hide that — the same reasoning that makes an unrecognised
+    GOVERNANCE_MODE a hard error rather than a silent default.
+
+    Set GOVERNANCE_ALLOW_STUB_FALLBACK=1 for a demo that must keep moving
+    through evaluations the recordings were never built for. The recommendation
+    then reports `governance_mode="cached+stub"`, so the substitution is
+    visible in the API response and in the audit trail rather than assumed.
+    """
+    return os.environ.get(STUB_FALLBACK_ENV, "").strip().lower() in {"1", "true", "yes", "on"}
