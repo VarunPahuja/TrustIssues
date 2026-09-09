@@ -2313,7 +2313,7 @@
     },
     "/api/v1/decisions": {
       "get": {
-        "description": "List decisions, newest first.",
+        "description": "List decisions, newest first.\n\n`?agent_id=` filters in SQL. The agent detail page used to fetch the\nnewest 50 decisions across every agent and filter them in the browser,\nwhich silently showed nothing at all once another agent's run pushed it\noff the first page \u2014 a blank panel that looked like \"no decisions\" rather\nthan \"wrong query\".",
         "operationId": "list_decisions_api_v1_decisions_get",
         "parameters": [
           {
@@ -2341,6 +2341,22 @@
               "minimum": 1,
               "title": "Page Size",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agent_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent Id"
             }
           },
           {
@@ -2549,7 +2565,7 @@
     },
     "/api/v1/recommendations": {
       "get": {
-        "description": "List recommendations, newest first.",
+        "description": "List recommendations, newest first.\n\n`?status=` is the approvals queue's tab filter \u2014 PENDING is the review\nqueue, APPROVED and REJECTED are history. Without it the dashboard's four\ntabs all rendered the same list: the frontend was already sending the\nparameter, and an endpoint that silently ignores a query parameter looks\nexactly like a broken filter to whoever is clicking it.\n\n`?agent_id=` narrows to one agent, which is what an agent detail page\nwants.",
         "operationId": "list_recommendations_api_v1_recommendations_get",
         "parameters": [
           {
@@ -2577,6 +2593,38 @@
               "minimum": 1,
               "title": "Page Size",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RecommendationStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agent_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent Id"
             }
           },
           {

@@ -55,13 +55,37 @@ export interface paths {
          * List Policy Versions
          * @description The agent's append-only limit history, newest first.
          *
-         *     Once implemented: `SELECT ... WHERE agent_id = :agent_id ORDER BY
-         *     effective_from DESC`. `previous_version_id` always chains to a row
-         *     that exists, except the very first version for an agent.
+         *     `previous_version_id` always chains to a row that exists, except the
+         *     very first version for an agent.
          */
         get: operations["list_policy_versions_api_v1_agents__agent_id__policy_versions_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/{agent_id}/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Recommendation
+         * @description Generate a fresh governance recommendation for `agent_id`: recompute
+         *     its `TrustEvaluation` from persisted decisions, run the governance panel
+         *     over it (`GOVERNANCE_MODE`, default `stub`), clamp the panel's proposal to
+         *     what the evidence actually supports, and persist trust evaluation,
+         *     recommendation, and audit entry — all in this one request's transaction
+         *     (`app.deps.get_session`; see `app/services/governance.py`).
+         */
+        post: operations["create_recommendation_api_v1_agents__agent_id__recommendations_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -77,12 +101,11 @@ export interface paths {
         };
         /**
          * Get Current Trust
-         * @description The agent's most recent `TrustEvaluation`.
-         *
-         *     Once implemented: calls `trust_engine.evaluate(decisions, context)` with
-         *     the agent's full decision history and current `AgentContext`, persists
-         *     the result with a minted `id`, and returns it — or, if evaluation is
-         *     cached, the most recent persisted row.
+         * @description Evaluate `agent_id`'s real persisted decision history with the real
+         *     trust engine, persist the result, and return it. An agent with zero
+         *     decisions still gets a valid `TrustEvaluation` back — `trust_engine.evaluate`
+         *     is designed to handle an empty history, not to be called only once one
+         *     exists (see `app/services/trust.py`).
          */
         get: operations["get_current_trust_api_v1_agents__agent_id__trust_get"];
         put?: never;
@@ -102,11 +125,8 @@ export interface paths {
         };
         /**
          * List Trust History
-         * @description Every `TrustEvaluation` ever computed for this agent, newest first —
+         * @description Every `TrustEvaluation` ever persisted for this agent, newest first —
          *     what the dashboard's trust-over-time chart is built from.
-         *
-         *     Once implemented: `SELECT ... WHERE agent_id = :agent_id ORDER BY
-         *     evaluated_at DESC`.
          */
         get: operations["list_trust_history_api_v1_agents__agent_id__trust_history_get"];
         put?: never;
@@ -129,10 +149,14 @@ export interface paths {
          * @description The complete hash-chained event log, newest first. Read-only —
          *     nothing in this API ever mutates an existing row (that's the point).
          *
-         *     Once implemented: `SELECT ... ORDER BY ts DESC`. Verifying the chain
-         *     (recomputing each `hash` from `prev_hash` + the row's own payload) is a
-         *     read-side operation a caller can do against this same data, not
-         *     something the backend does on every read.
+         *     Recomputes the whole chain from `GENESIS_HASH` on every call —
+         *     `audit_log` is small enough in this system for that to be cheap — and
+         *     reports the result as `chain_valid`/`chain_verified_scope` rather than
+         *     just asserting immutability in a docstring. If the table ever grows
+         *     large enough that a full recompute stops being cheap, this falls back
+         *     to verifying only the returned page and says so via
+         *     `chain_verified_scope`, instead of silently verifying less than it
+         *     claims.
          */
         get: operations["list_audit_log_api_v1_audit_log_get"];
         put?: never;
@@ -206,6 +230,12 @@ export interface paths {
         /**
          * List Decisions
          * @description List decisions, newest first.
+         *
+         *     `?agent_id=` filters in SQL. The agent detail page used to fetch the
+         *     newest 50 decisions across every agent and filter them in the browser,
+         *     which silently showed nothing at all once another agent's run pushed it
+         *     off the first page — a blank panel that looked like "no decisions" rather
+         *     than "wrong query".
          */
         get: operations["list_decisions_api_v1_decisions_get"];
         put?: never;
@@ -282,8 +312,14 @@ export interface paths {
          * List Recommendations
          * @description List recommendations, newest first.
          *
-         *     Once implemented: `SELECT ... ORDER BY generated_at DESC`, with a
-         *     `?status=PENDING` filter for the approvals queue view.
+         *     `?status=` is the approvals queue's tab filter — PENDING is the review
+         *     queue, APPROVED and REJECTED are history. Without it the dashboard's four
+         *     tabs all rendered the same list: the frontend was already sending the
+         *     parameter, and an endpoint that silently ignores a query parameter looks
+         *     exactly like a broken filter to whoever is clicking it.
+         *
+         *     `?agent_id=` narrows to one agent, which is what an agent detail page
+         *     wants.
          */
         get: operations["list_recommendations_api_v1_recommendations_get"];
         put?: never;
@@ -325,17 +361,19 @@ export interface paths {
         put?: never;
         /**
          * Approve Recommendation
-         * @description Authorize a pending INCREASE. ADMIN only.
+         * @description Authorize a pending recommendation. ADMIN only.
          *
-         *     Once implemented: writes an `approvals` row (`decided_by`, `verdict`,
-         *     `reason`, `decided_at`), flips `Recommendation.status` to `APPROVED`,
-         *     and — in the same transaction — writes the new `policy_versions` row
-         *     that actually changes `agents.current_limit`
-         *     (docs/lanes/vp.md: "Never update agents.current_limit without writing a
-         *     policy_versions row in the same transaction"). This stub validates the
-         *     recommendation exists and is still `PENDING`, then returns a copy with
-         *     `status=APPROVED` — it does not persist the change or write a policy
-         *     version.
+         *     Writes an `approvals` row (`decided_by`, `verdict=APPROVED`, `reason`,
+         *     `decided_at`), flips `Recommendation.status` to `APPROVED`, and — only if
+         *     `proposed_limit` actually differs from the agent's current limit — writes
+         *     the new `policy_versions` row that changes `agents.current_limit`/
+         *     `current_rung` in the same transaction (docs/lanes/vp.md: "Never update
+         *     agents.current_limit without writing a policy_versions row in the same
+         *     transaction"). Approving a HOLD recommendation (`proposed_limit` already
+         *     equal to the current limit) is still recorded via the `approvals` row,
+         *     but writes no policy version — and so does not reset the cooldown clock
+         *     `app/services/trust.py:agent_context` derives from the latest version's
+         *     `effective_from`, which a no-op approval has no business touching.
          */
         post: operations["approve_recommendation_api_v1_recommendations__rec_id__approve_post"];
         delete?: never;
@@ -357,9 +395,9 @@ export interface paths {
          * Reject Recommendation
          * @description Reject a pending recommendation. ADMIN only, same as approve.
          *
-         *     Once implemented: writes an `approvals` row with `verdict=REJECTED` and
-         *     flips `Recommendation.status` to `REJECTED`. No policy version is
-         *     written — the agent's limit does not change.
+         *     Writes an `approvals` row with `verdict=REJECTED` and flips
+         *     `Recommendation.status` to `REJECTED`. No policy version is written —
+         *     the agent's limit does not change.
          */
         post: operations["reject_recommendation_api_v1_recommendations__rec_id__reject_post"];
         delete?: never;
@@ -379,15 +417,23 @@ export interface paths {
         put?: never;
         /**
          * Start Simulation Run
-         * @description Start a simulation run — the simulator generates `invoice_count`
-         *     synthetic invoices for `phase` and posts each resulting decision to
-         *     `POST /api/v1/decisions`.
+         * @description Start a real simulation run.
          *
-         *     Once implemented: enqueues the run (no Celery — see docs/CONTEXT.md's
-         *     cut-scope list; a background task or a synchronous call is enough for
-         *     this project's scale) and returns immediately with `status=pending`.
-         *     This stub returns a freshly-minted run in `pending` status without
-         *     actually starting anything.
+         *     Creates the run row with `status=running`, then schedules
+         *     `app.services.simulation.execute_simulation_run` as a `BackgroundTasks`
+         *     job: it generates `invoice_count` synthetic invoices for `phase` from
+         *     `seed`, runs a scripted agent over them, and submits every resulting
+         *     decision through the same ingest path `POST /api/v1/decisions` itself
+         *     uses (`app.api.v1.decisions._create_decision`, called directly and
+         *     in-process — no self-HTTP-call, same function either way, so this is
+         *     not a shortcut into the database).
+         *
+         *     The run row is committed here, explicitly, before the background task
+         *     is scheduled — deliberately not left to `DbSessionDep`'s usual
+         *     commit-at-end-of-request — so the background task's own session is
+         *     guaranteed to find the row already durable, regardless of exactly how
+         *     FastAPI orders background-task execution relative to a dependency's
+         *     post-`yield` teardown code.
          */
         post: operations["start_simulation_run_api_v1_simulation_runs_post"];
         delete?: never;
@@ -406,9 +452,8 @@ export interface paths {
         /**
          * Get Simulation Run
          * @description Poll a run's status and, once complete, its summary accuracy/Wilson
-         *     lower bound over the decisions it submitted.
-         *
-         *     Once implemented: `SELECT ... WHERE id = :run_id`, 404 if no row.
+         *     lower bound over the decisions it submitted. `decisions_submitted`
+         *     updates after every decision while the run is still in progress.
          */
         get: operations["get_simulation_run_api_v1_simulation_runs__run_id__get"];
         put?: never;
@@ -518,6 +563,46 @@ export interface components {
              * Format: date-time
              */
             ts: string;
+        };
+        /**
+         * AuditLogPage
+         * @description `GET /api/v1/audit-log`'s response: the usual pagination envelope,
+         *     plus a chain-verification result computed fresh on every call — this is
+         *     what makes tamper-evidence demonstrable on screen rather than claimed in
+         *     a docstring (docs/lanes/vp.md).
+         *
+         *     `chain_verified_scope` says exactly what `chain_valid` covers: `"full"`
+         *     when every row in `audit_log` was recomputed from `GENESIS_HASH`,
+         *     `"page"` if the table ever grows large enough that a full recompute on
+         *     every request stops being cheap and this endpoint falls back to
+         *     verifying only the returned page — never silently verifying less than
+         *     it claims.
+         */
+        AuditLogPage: {
+            /** Chain Valid */
+            chain_valid: boolean;
+            /**
+             * Chain Verified Scope
+             * @enum {string}
+             */
+            chain_verified_scope: "full" | "page";
+            /** Items */
+            items: components["schemas"]["AuditLogEntryOut"][];
+            /**
+             * Page
+             * @description 1-indexed page number
+             */
+            page: number;
+            /**
+             * Page Size
+             * @description Items per page, as requested
+             */
+            page_size: number;
+            /**
+             * Total
+             * @description Total matching records, independent of page size
+             */
+            total: number;
         };
         /**
          * AuditSampleOut
@@ -679,26 +764,6 @@ export interface components {
         Page_AgentOut_: {
             /** Items */
             items: components["schemas"]["AgentOut"][];
-            /**
-             * Page
-             * @description 1-indexed page number
-             */
-            page: number;
-            /**
-             * Page Size
-             * @description Items per page, as requested
-             */
-            page_size: number;
-            /**
-             * Total
-             * @description Total matching records, independent of page size
-             */
-            total: number;
-        };
-        /** Page[AuditLogEntryOut] */
-        Page_AuditLogEntryOut_: {
-            /** Items */
-            items: components["schemas"]["AuditLogEntryOut"][];
             /**
              * Page
              * @description 1-indexed page number
@@ -906,6 +971,8 @@ export interface components {
             proposed_rung: number;
             /** Rationale */
             rationale: string;
+            /** Reason Codes */
+            reason_codes?: string[];
             /** Recommendation Id */
             recommendation_id: string;
             /** Schema Version */
@@ -995,6 +1062,8 @@ export interface components {
             completed_at: string | null;
             /** Decisions Submitted */
             decisions_submitted: number;
+            /** Error Message */
+            error_message?: string | null;
             /** Invoice Count */
             invoice_count: number;
             phase: components["schemas"]["SimulationPhase"];
@@ -1214,6 +1283,66 @@ export interface operations {
             };
         };
     };
+    create_recommendation_api_v1_agents__agent_id__recommendations_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Role"?: string | null;
+            };
+            path: {
+                agent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationOut"];
+                };
+            };
+            /** @description The current role may not perform this action. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No resource with that id. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description A downstream dependency (e.g. governance) could not serve this request. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     get_current_trust_api_v1_agents__agent_id__trust_get: {
         parameters: {
             query?: never;
@@ -1325,7 +1454,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Page_AuditLogEntryOut_"];
+                    "application/json": components["schemas"]["AuditLogPage"];
                 };
             };
             /** @description Validation Error */
@@ -1446,6 +1575,7 @@ export interface operations {
                 page?: number;
                 /** @description Items per page */
                 page_size?: number;
+                agent_id?: string | null;
             };
             header?: {
                 "X-User-Role"?: string | null;
@@ -1497,6 +1627,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DecisionRecordOut"];
+                };
+            };
+            /** @description The current role may not perform this action. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
                 };
             };
             /** @description Validation Error */
@@ -1579,6 +1718,8 @@ export interface operations {
                 page?: number;
                 /** @description Items per page */
                 page_size?: number;
+                status?: components["schemas"]["RecommendationStatus"] | null;
+                agent_id?: string | null;
             };
             header?: {
                 "X-User-Role"?: string | null;
@@ -1804,6 +1945,15 @@ export interface operations {
             };
             /** @description The current role may not perform this action. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No resource with that id. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

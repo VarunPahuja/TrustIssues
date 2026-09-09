@@ -156,14 +156,30 @@ def _record_decision(
 
 @router.get("", response_model=Page[RecommendationOut])
 def list_recommendations(
-    db: DbSessionDep, user: CurrentUserDep, page: PageParam = 1, page_size: PageSizeParam = 20
+    db: DbSessionDep,
+    user: CurrentUserDep,
+    page: PageParam = 1,
+    page_size: PageSizeParam = 20,
+    status: RecommendationStatus | None = None,
+    agent_id: str | None = None,
 ) -> Page[RecommendationOut]:
-    """List recommendations, newest first."""
-    rows = (
-        db.execute(select(RecommendationRow).order_by(RecommendationRow.generated_at.desc()))
-        .scalars()
-        .all()
-    )
+    """List recommendations, newest first.
+
+    `?status=` is the approvals queue's tab filter — PENDING is the review
+    queue, APPROVED and REJECTED are history. Without it the dashboard's four
+    tabs all rendered the same list: the frontend was already sending the
+    parameter, and an endpoint that silently ignores a query parameter looks
+    exactly like a broken filter to whoever is clicking it.
+
+    `?agent_id=` narrows to one agent, which is what an agent detail page
+    wants.
+    """
+    stmt = select(RecommendationRow)
+    if status is not None:
+        stmt = stmt.where(RecommendationRow.status == status)
+    if agent_id is not None:
+        stmt = stmt.where(RecommendationRow.agent_id == agent_id)
+    rows = db.execute(stmt.order_by(RecommendationRow.generated_at.desc())).scalars().all()
     return paginate([recommendation_out(row) for row in rows], page, page_size)
 
 
