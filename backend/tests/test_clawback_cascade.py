@@ -46,7 +46,7 @@ def _limit_and_rung(db_engine, agent_id: str) -> tuple[int, int]:
 
 
 def test_one_critical_error_drops_exactly_one_rung(client, admin_headers, db_engine):
-    before_limit, before_rung = _limit_and_rung(db_engine, "agent-01")
+    _, before_rung = _limit_and_rung(db_engine, "agent-01")
     assert before_rung >= 2, "agent-01 needs headroom for this test to mean anything"
 
     _critical_error(client, admin_headers, "agent-01", "single")
