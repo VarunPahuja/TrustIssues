@@ -138,6 +138,7 @@ class ArcRunner:
         self.ruled: int = 0
         self.submit_failures: list[str] = []
         self.submitted_ids: list[str] = []
+        self._pending_rulings: list[tuple[str, Action, int]] = []
 
         # Ladder state the backend would normally hold.
         self.limit: int = AUTONOMY_FLOOR
@@ -189,6 +190,9 @@ class ArcRunner:
             if self.api_client is not None:
                 self._submit(invoice, outcome, record)
 
+        if self.api_client is not None:
+            self._flush_rulings()
+
     def _submit(self, invoice: Invoice, outcome, record: DecisionRecord) -> None:
         """POST one decision, and its ruling if it was escalated.
 
@@ -213,20 +217,38 @@ class ArcRunner:
         if decision_id:
             self.submitted_ids.append(decision_id)
 
-        # An escalation carries a human ruling in this arc, so send it too —
-        # without it the backend's own trust evaluation would drop the
+        # An escalation carries a human ruling in this arc, so it needs sending
+        # too — without it the backend's own trust evaluation would drop the
         # human-agreement component even though the evidence exists locally.
+        #
+        # Queued, not sent now. `POST /decisions` returns 201 before the row is
+        # readable: measured at a median 50ms lag on a populated database, and
+        # the gap widens as the table grows. Ruling immediately meant asking
+        # the backend about a decision it had just told us it created and did
+        # not yet admit to having — half the rulings failed on a full arc run.
+        #
+        # Deferring is also the more faithful model. A human reviewing an
+        # escalation is a separate act that happens afterwards, not in the same
+        # breath as the agent's decision.
         if record.human_ruling is None or not decision_id:
             return
-        try:
-            self.api_client.submit_ruling(
-                decision_id,
-                record.human_ruling,
-                reason=f"{self.run_id} reviewer ruling seq={record.sequence}",
-            )
-            self.ruled += 1
-        except Exception as exc:  # noqa: BLE001 - a failed ruling is recorded, not fatal
-            self.submit_failures.append(f"{decision_id} ruling: {type(exc).__name__}: {exc}")
+        self._pending_rulings.append((decision_id, record.human_ruling, record.sequence))
+
+    def _flush_rulings(self) -> None:
+        """Send the rulings queued during this phase."""
+        pending, self._pending_rulings = self._pending_rulings, []
+        for decision_id, ruling, sequence in pending:
+            try:
+                self.api_client.submit_ruling(
+                    decision_id,
+                    ruling,
+                    reason=f"{self.run_id} reviewer ruling seq={sequence}",
+                )
+                self.ruled += 1
+            except Exception as exc:  # noqa: BLE001 - a failed ruling is recorded, not fatal
+                self.submit_failures.append(
+                    f"{decision_id} ruling: {type(exc).__name__}: {exc}"
+                )
 
     def _to_record(self, invoice: Invoice, outcome, agent: ScriptedAgent) -> DecisionRecord:
         seq = len(self.records)
