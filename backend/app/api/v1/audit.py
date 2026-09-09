@@ -9,9 +9,12 @@ remain fixture-backed — out of scope here.
 
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
+from shared.enums import ReviewVerdict
+from shared.reason_codes import SAMPLE_REVIEW_DISAGREEMENT
 from sqlalchemy import select
 
 from app.api.v1.pagination import PageParam, PageSizeParam, paginate
@@ -23,9 +26,9 @@ from app.errors import (
     ApiError,
     not_found,
 )
-from app.fixtures.audit import AUDIT_SAMPLES, AUDIT_SAMPLES_BY_ID
-from app.models import AuditLogEntry
+from app.models import AuditLogEntry, AuditSample
 from app.models.audit_hash import verify_chain
+from app.models.audit_log import append_entry
 from app.schemas.audit import AuditLogEntryOut, AuditLogPage, AuditSampleOut, AuditSampleReview
 from app.schemas.envelope import Page
 from app.schemas.user import Role
@@ -37,18 +40,51 @@ router = APIRouter(tags=["audit"])
 _reviewer_or_admin = Depends(require_role(Role.ADMIN, Role.REVIEWER))
 
 
+def _sample_out(sample: AuditSample) -> AuditSampleOut:
+    """`audit_samples.id` is the row's primary key; `AuditSampleOut.sample_id`
+    is what `shared.contracts.AuditSample` calls it. Mapped explicitly rather
+    than by attribute name, the same way `_decision_out` assembles a decision.
+    """
+    return AuditSampleOut(
+        sample_id=sample.id,
+        decision_id=sample.decision_id,
+        agent_id=sample.agent_id,
+        sampled_at=sample.sampled_at,
+        reviewed_at=sample.reviewed_at,
+        reviewer=sample.reviewer,
+        verdict=sample.verdict,
+        reviewer_action=sample.reviewer_action,
+    )
+
+
 @router.get("/audit-samples", response_model=Page[AuditSampleOut])
 def list_audit_samples(
-    user: CurrentUserDep, page: PageParam = 1, page_size: PageSizeParam = 20
+    db: DbSessionDep,
+    user: CurrentUserDep,
+    page: PageParam = 1,
+    page_size: PageSizeParam = 20,
+    pending: bool = False,
+    agent_id: str | None = None,
 ) -> Page[AuditSampleOut]:
     """List sampled decisions pulled for human review, newest first.
 
-    Once implemented: `SELECT ... ORDER BY sampled_at DESC`, with a
-    `?pending=true` filter for the review queue view — samples are pulled
-    at `sampling_rate_of(agent.current_rung)` (shared/constants.py) as
-    decisions are recorded, not on a schedule.
+    Reads the real `audit_samples` table. Rows are written by
+    `app.services.audit_sampling.sample_if_selected` as decisions are
+    recorded, at `sampling_rate_of(agent.current_rung)` — as they happen, not
+    on a schedule, so the queue reflects the agent's current rung rather than
+    whatever it was when a batch job last ran.
+
+    `?pending=true` is the review-queue view: samples nobody has ruled on yet.
+    `?agent_id=` narrows to one agent, which is what an agent detail page wants.
     """
-    return paginate(list(reversed(AUDIT_SAMPLES)), page, page_size)
+    stmt = select(AuditSample)
+    if pending:
+        stmt = stmt.where(AuditSample.reviewed_at.is_(None))
+    if agent_id is not None:
+        stmt = stmt.where(AuditSample.agent_id == agent_id)
+    rows = db.execute(stmt.order_by(AuditSample.sampled_at.desc())).scalars().all()
+    items = [_sample_out(r) for r in rows]
+    return paginate(items, page, page_size)
 
 
 @router.post(
@@ -57,38 +93,73 @@ def list_audit_samples(
     dependencies=[_reviewer_or_admin],
     responses={**NOT_FOUND_RESPONSE, **FORBIDDEN_RESPONSE, **CONFLICT_RESPONSE},
 )
-def review_audit_sample(sample_id: str, body: AuditSampleReview) -> AuditSampleOut:
+def review_audit_sample(
+    sample_id: str, body: AuditSampleReview, user: CurrentUserDep, db: DbSessionDep
+) -> AuditSampleOut:
     """Record a human review of one sampled decision. REVIEWER or ADMIN only.
 
-    Once implemented: writes `reviewed_at`/`reviewer`/`verdict`/
-    `reviewer_action` onto the `audit_samples` row, and — if `verdict` is
-    `DISAGREED` — emits `SAMPLE_REVIEW_DISAGREEMENT`
-    (shared/reason_codes.py) into the agent's next trust evaluation, since
-    a disagreeing sample is itself evidence. This stub validates the sample
-    exists and is still pending, then returns a copy reflecting the
-    review — it does not persist it or feed the trust engine.
+    Writes `reviewed_at`/`reviewer`/`verdict`/`reviewer_action` onto the
+    `audit_samples` row and appends a hash-chained audit entry. A `DISAGREED`
+    verdict carries `SAMPLE_REVIEW_DISAGREEMENT` (shared/reason_codes.py) on
+    that entry: a reviewer contradicting the agent is itself evidence, and it
+    is the only place in the system that code is produced.
+
+    Reviews once. A second review is a 409 rather than a silent overwrite —
+    the same reasoning as a decision ruling: a review is evidence that may
+    already have been counted, and rewriting it would change history under
+    whatever cited it.
+
+    What this deliberately does NOT do: overwrite the decision's recorded
+    ground truth. ADR-0009 describes reviewed samples eventually *becoming*
+    the ground-truth source once the system runs past the simulator, but that
+    same ADR flags the contract gap it depends on — `TrustEvaluation` has no
+    field distinguishing accuracy built from full ground truth from accuracy
+    built from a sampled slice — as deferred, not decided. Silently
+    substituting one for the other here would corrupt the simulator's
+    deterministic ground truth and break the arc's reproducibility, to
+    implement a contract change nobody has agreed.
     """
-    sample = AUDIT_SAMPLES_BY_ID.get(sample_id)
+    sample = db.get(AuditSample, sample_id)
     if sample is None:
         raise not_found(
             "audit_sample_not_found", f"No audit sample {sample_id!r}.", {"sample_id": sample_id}
         )
-    already_reviewed = sample.reviewed_at is not None and sample.verdict is not None
-    if already_reviewed:
+
+    if sample.reviewed_at is not None and sample.verdict is not None:
         raise ApiError(
             status_code=409,
             code="audit_sample_already_reviewed",
             message=f"Audit sample {sample_id!r} was already reviewed.",
             detail={"sample_id": sample_id, "reviewed_at": str(sample.reviewed_at)},
         )
-    return sample.model_copy(
-        update={
-            "reviewed_at": datetime.now(UTC),
-            "reviewer": "current-reviewer",  # real identity once auth is real
-            "verdict": body.verdict,
-            "reviewer_action": body.reviewer_action,
-        }
+
+    reviewed_at = datetime.now(UTC)
+    sample.reviewed_at = reviewed_at
+    sample.reviewer = user.user_id
+    sample.verdict = body.verdict
+    sample.reviewer_action = body.reviewer_action
+
+    disagreed = body.verdict is ReviewVerdict.DISAGREED
+    append_entry(
+        db,
+        id=f"log-{uuid.uuid4().hex[:12]}",
+        ts=reviewed_at,
+        actor=user.user_id,
+        actor_type="human",
+        event_type="audit_sample.reviewed",
+        entity_type="audit_sample",
+        entity_id=sample.id,
+        payload={
+            "decision_id": sample.decision_id,
+            "agent_id": sample.agent_id,
+            "verdict": body.verdict.value,
+            "reviewer_action": body.reviewer_action.value,
+            "reason_codes": [SAMPLE_REVIEW_DISAGREEMENT] if disagreed else [],
+            "reason": body.reason,
+        },
     )
+
+    return _sample_out(sample)
 
 
 @router.get("/audit-log", response_model=AuditLogPage)

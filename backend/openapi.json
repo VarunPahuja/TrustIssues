@@ -2169,7 +2169,7 @@
     },
     "/api/v1/audit-samples": {
       "get": {
-        "description": "List sampled decisions pulled for human review, newest first.\n\nOnce implemented: `SELECT ... ORDER BY sampled_at DESC`, with a\n`?pending=true` filter for the review queue view \u2014 samples are pulled\nat `sampling_rate_of(agent.current_rung)` (shared/constants.py) as\ndecisions are recorded, not on a schedule.",
+        "description": "List sampled decisions pulled for human review, newest first.\n\nReads the real `audit_samples` table. Rows are written by\n`app.services.audit_sampling.sample_if_selected` as decisions are\nrecorded, at `sampling_rate_of(agent.current_rung)` \u2014 as they happen, not\non a schedule, so the queue reflects the agent's current rung rather than\nwhatever it was when a batch job last ran.\n\n`?pending=true` is the review-queue view: samples nobody has ruled on yet.\n`?agent_id=` narrows to one agent, which is what an agent detail page wants.",
         "operationId": "list_audit_samples_api_v1_audit_samples_get",
         "parameters": [
           {
@@ -2197,6 +2197,32 @@
               "minimum": 1,
               "title": "Page Size",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pending",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Pending",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agent_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent Id"
             }
           },
           {
@@ -2246,7 +2272,7 @@
     },
     "/api/v1/audit-samples/{sample_id}/review": {
       "post": {
-        "description": "Record a human review of one sampled decision. REVIEWER or ADMIN only.\n\nOnce implemented: writes `reviewed_at`/`reviewer`/`verdict`/\n`reviewer_action` onto the `audit_samples` row, and \u2014 if `verdict` is\n`DISAGREED` \u2014 emits `SAMPLE_REVIEW_DISAGREEMENT`\n(shared/reason_codes.py) into the agent's next trust evaluation, since\na disagreeing sample is itself evidence. This stub validates the sample\nexists and is still pending, then returns a copy reflecting the\nreview \u2014 it does not persist it or feed the trust engine.",
+        "description": "Record a human review of one sampled decision. REVIEWER or ADMIN only.\n\nWrites `reviewed_at`/`reviewer`/`verdict`/`reviewer_action` onto the\n`audit_samples` row and appends a hash-chained audit entry. A `DISAGREED`\nverdict carries `SAMPLE_REVIEW_DISAGREEMENT` (shared/reason_codes.py) on\nthat entry: a reviewer contradicting the agent is itself evidence, and it\nis the only place in the system that code is produced.\n\nReviews once. A second review is a 409 rather than a silent overwrite \u2014\nthe same reasoning as a decision ruling: a review is evidence that may\nalready have been counted, and rewriting it would change history under\nwhatever cited it.\n\nWhat this deliberately does NOT do: overwrite the decision's recorded\nground truth. ADR-0009 describes reviewed samples eventually *becoming*\nthe ground-truth source once the system runs past the simulator, but that\nsame ADR flags the contract gap it depends on \u2014 `TrustEvaluation` has no\nfield distinguishing accuracy built from full ground truth from accuracy\nbuilt from a sampled slice \u2014 as deferred, not decided. Silently\nsubstituting one for the other here would corrupt the simulator's\ndeterministic ground truth and break the arc's reproducibility, to\nimplement a contract change nobody has agreed.",
         "operationId": "review_audit_sample_api_v1_audit_samples__sample_id__review_post",
         "parameters": [
           {
