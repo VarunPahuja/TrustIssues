@@ -126,9 +126,21 @@ export const agentsApi = {
 // ---------------------------------------------------------------------------
 
 export const decisionsApi = {
-  /** GET /decisions → Page<DecisionRecordOut> */
-  list: (page = 1, pageSize = 50): Promise<PaginatedResponse<DecisionRecordOut>> =>
-    get(`/decisions?page=${page}&page_size=${pageSize}`),
+  /**
+   * GET /decisions → Page<DecisionRecordOut>
+   * `agentId` filters server-side. Filtering in the browser instead meant an
+   * agent whose decisions had been pushed off the first page rendered as
+   * empty, which reads as "no decisions" rather than "wrong query".
+   */
+  list: (
+    page = 1,
+    pageSize = 50,
+    agentId?: string,
+  ): Promise<PaginatedResponse<DecisionRecordOut>> =>
+    get(
+      `/decisions?page=${page}&page_size=${pageSize}` +
+        (agentId ? `&agent_id=${agentId}` : ""),
+    ),
 
   /** GET /decisions/{id} → DecisionRecordOut */
   get: (decisionId: string): Promise<DecisionRecordOut> =>

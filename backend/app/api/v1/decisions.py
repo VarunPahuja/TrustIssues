@@ -267,14 +267,27 @@ def create_decision(
 
 @router.get("", response_model=Page[DecisionRecordOut])
 def list_decisions(
-    db: DbSessionDep, user: CurrentUserDep, page: PageParam = 1, page_size: PageSizeParam = 20
+    db: DbSessionDep,
+    user: CurrentUserDep,
+    page: PageParam = 1,
+    page_size: PageSizeParam = 20,
+    agent_id: str | None = None,
 ) -> Page[DecisionRecordOut]:
-    """List decisions, newest first."""
-    rows = db.execute(
+    """List decisions, newest first.
+
+    `?agent_id=` filters in SQL. The agent detail page used to fetch the
+    newest 50 decisions across every agent and filter them in the browser,
+    which silently showed nothing at all once another agent's run pushed it
+    off the first page — a blank panel that looked like "no decisions" rather
+    than "wrong query".
+    """
+    stmt = (
         select(Decision, Invoice)
         .join(Invoice, Decision.invoice_id == Invoice.id)
-        .order_by(Decision.decided_at.desc())
-    ).all()
+    )
+    if agent_id is not None:
+        stmt = stmt.where(Decision.agent_id == agent_id)
+    rows = db.execute(stmt.order_by(Decision.decided_at.desc())).all()
     items = [_decision_out(decision, invoice) for decision, invoice in rows]
     return paginate(items, page, page_size)
 

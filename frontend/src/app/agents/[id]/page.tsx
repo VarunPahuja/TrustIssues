@@ -5,7 +5,7 @@
  * Uses AgentOut (from GET /agents/{id}) for basic identity, and
  * TrustEvaluation (from GET /agents/{id}/trust) for all metrics.
  * Policy versions (from GET /agents/{id}/policy-versions) for the timeline.
- * Decisions from GET /decisions filtered client-side by agent_id.
+ * Decisions from GET /decisions?agent_id= — filtered server-side.
  *
  * KEY CHANGES:
  *  - trust endpoint is /trust not /trust-evaluation
@@ -109,7 +109,7 @@ export default function AgentDetailPage() {
 
   const { data: decisionsData, isError: decisionsError } = useQuery({
     queryKey: ["agent-decisions", id],
-    queryFn: () => decisionsApi.list(),
+    queryFn: () => decisionsApi.list(1, 50, id),
   });
 
   if (agentLoading) {
@@ -157,7 +157,7 @@ export default function AgentDetailPage() {
   const samplingRate = samplingRateOf(agent.current_rung);
 
   // Filter decisions for this agent (client-side, since no per-agent endpoint exists)
-  const agentDecisions = (decisionsData?.items ?? []).filter(d => d.agent_id === id);
+  const agentDecisions = decisionsData?.items ?? [];
 
   return (
     <div>
