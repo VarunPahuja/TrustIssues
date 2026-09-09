@@ -22,6 +22,7 @@ exactly the way a future decision-ingest endpoint will.
 
 from __future__ import annotations
 
+import argparse
 import os
 from datetime import UTC, datetime, timedelta
 
@@ -52,13 +53,14 @@ from shared.reason_codes import (
     NO_RECENT_CRITICAL_ERRORS,
     WEIGHTS_RENORMALISED,
 )
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session
 
 from app.models import (
     Agent,
     Approval,
     AuditSample,
+    Base,
     Decision,
     Invoice,
     PolicyVersion,
@@ -853,10 +855,12 @@ def _seed_audit_log(session: Session) -> None:
 
 
 def seed(session: Session) -> None:
-    """Populate every table with one coherent, deterministic dataset. Safe to
-    call exactly once against an empty (freshly migrated) database — this is
-    not idempotent against a database that already has rows, by design: `make
-    db-reset` always drops and recreates first."""
+    """Populate every table with one coherent, deterministic dataset. This
+    function itself still assumes an empty database — inserting into
+    `users` first, with fixed ids, is what makes a second raw call blow up
+    on `users_pkey`. `main()` (below) is what actually makes the CLI entry
+    point idempotent, by checking first and truncating on request rather
+    than by making this function tolerate partial/duplicate state."""
     _seed_users(session)
     session.commit()
 
@@ -871,10 +875,50 @@ def seed(session: Session) -> None:
     _seed_audit_log(session)
 
 
+def _already_seeded(session: Session) -> bool:
+    return session.execute(select(User.id).limit(1)).first() is not None
+
+
+def _truncate_all_tables(session: Session) -> None:
+    """Empty every app table (never `alembic_version` — that's migration
+    bookkeeping, not app data, and isn't part of `Base.metadata`) in one
+    statement. `CASCADE` makes the FK order irrelevant; `RESTART IDENTITY`
+    matters for any future serial/identity columns, harmless today since
+    every id here is an assigned string."""
+    table_names = ", ".join(f'"{t.name}"' for t in Base.metadata.sorted_tables)
+    session.execute(text(f"TRUNCATE TABLE {table_names} RESTART IDENTITY CASCADE"))
+    session.commit()
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Seed the database with one coherent, deterministic demo dataset."
+    )
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help=(
+            "If the database already has data, truncate every app table first, "
+            "then seed. Without this flag, an already-seeded database is left "
+            "untouched. Destructive, but scoped to this database's own app "
+            "tables — never used against something the caller didn't ask for."
+        ),
+    )
+    args = parser.parse_args()
+
     database_url = os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL)
     engine = create_engine(database_url)
     with Session(engine) as session:
+        if _already_seeded(session):
+            if not args.reset:
+                print(
+                    f"{database_url} already has data (found existing users) — "
+                    "nothing done. Re-run with --reset to wipe every app table "
+                    "and reseed from scratch."
+                )
+                return
+            print("Existing data found; --reset passed — truncating every app table before reseeding.")
+            _truncate_all_tables(session)
         seed(session)
     print(f"Seeded {database_url}")
 
