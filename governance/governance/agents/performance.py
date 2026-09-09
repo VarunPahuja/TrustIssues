@@ -56,12 +56,34 @@ def opine(evaluation: TrustEvaluation, mode: str) -> AgentOpinion:
             "reliably be detected yet"
         )
 
-    if drift.severity in (DriftSeverity.CONFIRMED, DriftSeverity.CRITICAL):
+    if drift.severity is DriftSeverity.CRITICAL:
+        # CRITICAL is not a statistical finding. It fires the moment a critical
+        # error appears in the recent window, without running the two-proportion
+        # test at all, so drop_pp and p_value are None. Describing it in the
+        # language of a measured degradation printed "a drop of n/a" and claimed
+        # a drop that had not happened — recent accuracy can be *higher* than
+        # baseline and still be CRITICAL, because one approved invoice that
+        # should have been rejected is not an averaging question.
         return AgentOpinion(
             agent_name=NAME,
             verdict=OpinionVerdict.OBJECT,
             reasoning=(
-                f"Drift is {drift.severity.value}: recent accuracy "
+                "Drift is CRITICAL: a critical error — an approval where the "
+                "correct answer was rejection — appeared in the recent window. "
+                "This is decided on its own, without a statistical test, because "
+                "money leaving wrongly is not something an average should be "
+                "allowed to absorb."
+            ),
+            concerns=tuple(concerns),
+            confidence=0.85,
+        )
+
+    if drift.severity is DriftSeverity.CONFIRMED:
+        return AgentOpinion(
+            agent_name=NAME,
+            verdict=OpinionVerdict.OBJECT,
+            reasoning=(
+                f"Drift is CONFIRMED: recent accuracy "
                 f"{_pct(drift.recent_accuracy)} against a baseline of "
                 f"{_pct(drift.baseline_accuracy)}, a drop of {_pp(drift.drop_pp)} "
                 f"(p={_num(drift.p_value)}). This is a measured degradation, not noise."
