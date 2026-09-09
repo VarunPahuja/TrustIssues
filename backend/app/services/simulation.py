@@ -64,10 +64,22 @@ _PHASE_PARAMS: dict[SimulationPhase, dict[str, float]] = {
         "p_critical_error": 0.02,
         "p_noncritical_error": 0.06,
     },
+    # Retuned so the phase can actually show what it is named for. At
+    # p_ground_truth_reject 0.20 / p_critical_error 0.12 the expected accuracy
+    # was ~86% — a few points below `good`, indistinguishable on a dashboard —
+    # and a critical error landed on only 2.4% of decisions, so the chance of
+    # one falling inside CRITICAL_ERROR_WINDOW (20 acted decisions) was under
+    # half. A "degraded" run therefore usually finished with no drift, no
+    # clawback, and a trust score that had barely moved.
+    #
+    # More REJECT-worthy invoices, and a much higher chance of approving one,
+    # gives ~65% expected accuracy and puts a critical error in the recent
+    # window with probability ~0.97. This is what the comment above always
+    # intended; the numbers just did not reach it.
     SimulationPhase.DEGRADED: {
-        "p_ground_truth_reject": 0.20,
-        "p_critical_error": 0.12,
-        "p_noncritical_error": 0.15,
+        "p_ground_truth_reject": 0.35,
+        "p_critical_error": 0.45,
+        "p_noncritical_error": 0.30,
     },
     SimulationPhase.RECOVERY: {
         "p_ground_truth_reject": 0.20,
