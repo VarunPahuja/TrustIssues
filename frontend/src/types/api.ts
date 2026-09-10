@@ -212,6 +212,25 @@ export interface DecisionRecordOut {
   human_ruling: Action | null;
 }
 
+// --- DecisionCreate: request body for POST /decisions ---
+
+export interface DecisionCreate {
+  invoice_id: string;
+  amount: number;
+  action: Action;
+  ground_truth: Action;
+  agent_id: string;
+  recommended_action?: Action | null;
+  reason: string;
+}
+
+// --- DecisionRuling: request body for POST /decisions/{id}/ruling ---
+
+export interface DecisionRuling {
+  ruling: Action;
+  reason: string;
+}
+
 // --- TrustEvaluationOut: what GET /agents/{id}/trust returns ---
 
 export interface TrustEvaluation {
@@ -297,6 +316,9 @@ export interface Recommendation {
 
   clamped: boolean;
   clamped_from: number | null;
+
+  /** Backend-local addition, no shared/ equivalent — derived from `clamped`. */
+  reason_codes: string[];
 }
 
 // --- AuditSample ---
@@ -353,6 +375,7 @@ export interface SimulationRunOut {
   decisions_submitted: number;
   accuracy: number | null;
   wilson_lower_bound: number | null;
+  error_message?: string | null;
 }
 
 // ===========================================================================

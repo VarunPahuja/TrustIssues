@@ -200,6 +200,7 @@ export const MOCK_RECOMMENDATIONS: Recommendation[] = [
     generated_at: "2026-09-02T16:35:00Z",
     clamped: false,
     clamped_from: null,
+    reason_codes: [],
   },
   {
     recommendation_id: "rec-002",
@@ -223,6 +224,7 @@ export const MOCK_RECOMMENDATIONS: Recommendation[] = [
     generated_at: "2026-09-01T14:00:00Z",
     clamped: false,
     clamped_from: null,
+    reason_codes: [],
   },
 ];
 

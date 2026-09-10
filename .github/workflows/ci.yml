@@ -40,7 +40,7 @@ jobs:
           fi
 
       - name: ruff check
-        run: ruff check trust/ backend/ governance/
+        run: ruff check trust/ backend/ governance/ simulator/
 
       - name: pytest — trust/
         run: pytest trust/ -q
@@ -60,6 +60,31 @@ jobs:
           else
             echo "governance/tests has no test_*.py yet — skipping"
           fi
+
+      - name: Install simulator/
+        run: pip install -e simulator
+
+      - name: pytest — simulator/
+        run: pytest simulator/tests -q
+
+      # Runs the CLI itself. pytest exercises the modules underneath it, so a
+      # command that crashes on invocation still shows green without this.
+      # Two generations under different PYTHONHASHSEEDs must be byte-identical:
+      # that is what catches unseeded randomness and set-ordering leaks.
+      - name: simulator CLI — generate, validate, reproduce
+        run: |
+          for phase in good degraded recovery; do
+            PYTHONHASHSEED=0     python -m simulator generate --phase "$phase" --count 200 --seed 42 --out /tmp/fx1
+            PYTHONHASHSEED=12345 python -m simulator generate --phase "$phase" --count 200 --seed 42 --out /tmp/fx2
+            python -m simulator validate "/tmp/fx1/$phase.json"
+          done
+          diff -r /tmp/fx1 /tmp/fx2
+
+      - name: simulator demo arc reproduces identically
+        run: |
+          PYTHONHASHSEED=0     python -m simulator arc --seed 42 --count 200 > /tmp/arc1.txt
+          PYTHONHASHSEED=12345 python -m simulator arc --seed 42 --count 200 > /tmp/arc2.txt
+          diff /tmp/arc1.txt /tmp/arc2.txt
 
       # Regenerates backend/openapi.json in place (same mechanism as `make
       # openapi`) and fails if that changes anything — i.e. the committed file

@@ -6,6 +6,7 @@
  */
 
 import { http, HttpResponse } from "msw";
+import type { DecisionCreate, DecisionRecordOut, DecisionRuling } from "@/types/api";
 import {
   MOCK_AGENTS,
   MOCK_POLICY_VERSIONS,
@@ -15,6 +16,9 @@ import {
   MOCK_AUDIT_SAMPLES,
   MOCK_AUDIT_LOG,
 } from "./data";
+
+let mockDecisionSeq = 900;
+const mockRuledDecisions = new Map<string, DecisionRecordOut>();
 
 const API = "http://localhost:8000/api/v1";
 
@@ -69,19 +73,99 @@ export const handlers = [
     return HttpResponse.json(paginate(versions, request));
   }),
 
+  // POST /agents/{id}/recommendations — a fresh, live-generated recommendation.
+  // Always a clean, undissented INCREASE here: this mock is for exercising the
+  // page's plumbing, not for reproducing the demo arc's exact beat-4-vs-beat-9
+  // sequencing (the /demo page's own "replay" mode does that, independent of MSW).
+  http.post(`${API}/agents/:agentId/recommendations`, ({ params }) => {
+    const agentId = String(params.agentId);
+    const agent = MOCK_AGENTS.find(a => a.id === agentId);
+    const currentLimit = agent?.current_limit ?? 500;
+    const proposedLimit = Math.min(currentLimit * 2, 10_000);
+    return HttpResponse.json(
+      {
+        recommendation_id: `rec-mock-${Date.now()}`,
+        agent_id: agentId,
+        schema_version: "1.1",
+        direction: "INCREASE",
+        proposed_limit: proposedLimit,
+        proposed_rung: MOCK_POLICY_VERSIONS.filter(v => v.agent_id === agentId).length,
+        rationale: "Mocked recommendation — evidence cleared all gates, no dissent.",
+        opinions: [
+          { agent_name: "risk", verdict: "CONCUR", reasoning: "Mock: no risk concerns.", concerns: [], confidence: 0.85 },
+          { agent_name: "performance", verdict: "CONCUR", reasoning: "Mock: accuracy comfortably above threshold.", concerns: [], confidence: 0.88 },
+          { agent_name: "compliance", verdict: "CONCUR", reasoning: "Mock: no policy exceptions.", concerns: [], confidence: 0.82 },
+          { agent_name: "audit", verdict: "CONCUR", reasoning: "Mock: no gaps in the evidence.", concerns: [], confidence: 0.80 },
+        ],
+        has_dissent: false,
+        confidence: 0.84,
+        governance_mode: "stub",
+        status: "PENDING",
+        trust_evaluation_ref: MOCK_TRUST_EVALUATION.id,
+        generated_at: new Date().toISOString(),
+        clamped: false,
+        clamped_from: null,
+        reason_codes: [],
+      },
+      { status: 201 }
+    );
+  }),
+
   // ── Decisions ───────────────────────────────────────────────────────────
   http.get(`${API}/decisions`, ({ request }) =>
     HttpResponse.json(paginate(MOCK_DECISIONS, request))
   ),
 
   http.get(`${API}/decisions/:decisionId`, ({ params }) => {
-    const decision = MOCK_DECISIONS.find(d => d.decision_id === params.decisionId);
+    const decision =
+      MOCK_DECISIONS.find(d => d.decision_id === params.decisionId) ??
+      mockRuledDecisions.get(String(params.decisionId));
     return decision
       ? HttpResponse.json(decision)
       : HttpResponse.json(
           { code: "not_found", message: "Decision not found", detail: null },
           { status: 404 }
         );
+  }),
+
+  http.post(`${API}/decisions`, async ({ request }) => {
+    const body = (await request.json()) as DecisionCreate;
+    mockDecisionSeq += 1;
+    const decision: DecisionRecordOut = {
+      decision_id: `dec-mock-${mockDecisionSeq}`,
+      sequence: mockDecisionSeq,
+      invoice_id: body.invoice_id,
+      amount: body.amount,
+      action: body.action,
+      ground_truth: body.ground_truth,
+      agent_id: body.agent_id,
+      decided_at: new Date().toISOString(),
+      recommended_action: body.recommended_action ?? null,
+      human_ruling: null,
+    };
+    mockRuledDecisions.set(decision.decision_id, decision);
+    return HttpResponse.json(decision, { status: 201 });
+  }),
+
+  http.post(`${API}/decisions/:decisionId/ruling`, async ({ params, request }) => {
+    const body = (await request.json()) as DecisionRuling;
+    const decisionId = String(params.decisionId);
+    const existing = mockRuledDecisions.get(decisionId);
+    if (!existing) {
+      return HttpResponse.json(
+        { code: "not_found", message: "Decision not found", detail: null },
+        { status: 404 }
+      );
+    }
+    if (existing.human_ruling) {
+      return HttpResponse.json(
+        { code: "decision_already_ruled", message: "Decision already ruled", detail: null },
+        { status: 409 }
+      );
+    }
+    const ruled: DecisionRecordOut = { ...existing, human_ruling: body.ruling };
+    mockRuledDecisions.set(decisionId, ruled);
+    return HttpResponse.json(ruled);
   }),
 
   // ── Recommendations ─────────────────────────────────────────────────────

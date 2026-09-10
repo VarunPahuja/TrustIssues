@@ -53,7 +53,7 @@ function fmtTimeAgo(iso: string): string {
   return `${m}m ago`;
 }
 
-function OpinionCard({ opinion }: { opinion: AgentOpinion }) {
+export function OpinionCard({ opinion }: { opinion: AgentOpinion }) {
   return (
     <div className={`border rounded-[2px] p-3 text-xs ${opinion.verdict === "OBJECT" ? "border-red-300 bg-red-50/50" : "border-slate-200 bg-white"}`}>
       <div className="flex items-center justify-between mb-2">
