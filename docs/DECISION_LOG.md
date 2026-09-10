@@ -6,6 +6,125 @@ ADR.
 
 ---
 
+**2026-09-09 — Utkarsh (`uk/integration-dryrun`)** — The degraded simulation
+phase now actually degrades. `_PHASE_PARAMS`
+(`backend/app/services/simulation.py`) gave `degraded` ~86% expected accuracy
+against `good`'s ~95%, and put a critical error on only 2.4% of decisions — so
+the chance of one landing inside `CRITICAL_ERROR_WINDOW` (20 acted decisions)
+was under half, and a degraded run usually finished with no drift, no clawback
+and a trust score that had barely moved. Measured on a clean database at 150
+invoices per phase: good 94.5% / trust 93.1 / NONE, degraded 89.5% / 91.9 /
+NONE, recovery 93.0% / 92.8 / NONE — three phases, one story, nothing to
+demonstrate. Retuned to `p_ground_truth_reject` 0.35 / `p_critical_error` 0.45
+/ `p_noncritical_error` 0.30: ~65% expected accuracy and a critical error in
+the recent window with probability ~0.97. Now, across all three seeded agents:
+good ~93% / NONE / INCREASE, degraded ~62% / CRITICAL / CLAWBACK, recovery
+~92% / NONE / INCREASE. **Why:** the parameter block's own comment already said
+degraded "needs a meaningfully elevated critical-error rate for drift detection
+and clawback to actually fire within a realistic window" — the numbers never
+reached it. **Affects:** the dashboard's Simulation page can demonstrate
+degradation for the first time (`backend/tests/test_simulation_phases.py`, 10
+tests pinning the property rather than the numbers).
+
+**2026-09-09 — Utkarsh (`uk/integration-dryrun`)** — A `201` from `POST
+/api/v1/decisions` could arrive before its own row was readable.
+`session_dependency_factory` commits in the `yield` dependency's teardown,
+which runs after the endpoint returns, so the response could reach the client
+first. Measured by polling for the row after the 201: 18 of 40 immediately
+visible, 22 of 40 appearing after 28-97ms (median 51). At volume, read-back
+404s were 96 of 200. `create_decision` now commits before the response is built
+— still exactly one transaction per request, only its closing point moved — and
+read-back 404s went to 0 of 200. **Why:** this was behind two days of
+"intermittent" ruling failures: ~1% on a near-empty database and over 50% on a
+populated one, because the commit outgrows the network round-trip as the table
+grows. Not the dashboard competing for connections (the rate was *higher* with
+the frontend stopped) and not the ruling endpoint (a plain `GET` reproduced it).
+**Affects:** any client that creates a decision and immediately reads it back;
+the simulator additionally now rules on escalations in a second pass per phase,
+which is the more faithful model anyway.
+
+**2026-09-09 — Utkarsh (`uk/integration-dryrun`)** — One critical error can no
+longer cost every rung. `generate_recommendation` auto-applies a `CLAWBACK`
+(ADR-0004), and `DriftSeverity.CRITICAL` is stateless — it asks only whether a
+critical error sits in the recent acted window, with no memory of whether a
+clawback already answered it. Generating a recommendation is something callers
+repeat freely (a dashboard refresh, a retry, a simulator loop), so two calls
+with no decisions between them dropped two rungs for one error: confirmed live
+at 2500 -> 1000 -> 500. Guarded on
+`agent_context(db, agent).decisions_since_last_change == 0` — a limit that just
+moved with nothing recorded since is not new evidence. **Why:** ADR-0004
+specifies exactly one rung per clawback. **Affects:**
+`backend/tests/test_clawback_cascade.py`; Varun P.'s own auto-clawback tests
+pass unchanged, and a genuinely new critical error still costs a rung.
+
+**2026-09-09 — Utkarsh (`uk/audit-sampling`)** — Audit sampling implemented end
+to end (ADR-0009). Selection at decision ingest at
+`sampling_rate_of(agent.current_rung)`, inside the same transaction; `GET
+/audit-samples` reads the real table with `?pending=` and `?agent_id=` filters
+instead of serving `app/fixtures/audit.py`; `POST
+/audit-samples/{id}/review` persists the review, appends a hash-chained entry,
+emits `SAMPLE_REVIEW_DISAGREEMENT` on a `DISAGREED` verdict, and 409s a second
+review. Selection is deterministic — a decision is chosen by hashing its id,
+not by `random.random()`, so replaying a seeded run reproduces the same review
+queue. Verified live against Postgres: agent-02 at rung 0 sampled 200 of 200,
+agent-01 at rung 2 sampled 41 of 200 against an expected 0.25. Reviews
+deliberately do **not** overwrite the decision's recorded ground truth: ADR-0009
+describes reviewed samples eventually becoming the ground-truth source but flags
+the contract gap that depends on as deferred, and substituting one for the other
+would corrupt the simulator's deterministic ground truth. **Affects:**
+`SAMPLE_REVIEW_DISAGREEMENT` and `SAMPLE_EVIDENCE_INSUFFICIENT` are now
+reachable, so all 18 reason codes are live.
+
+**2026-09-09 — Utkarsh (`uk/integration-dryrun`)** — Cached governance mode is
+usable outside its own recordings, behind a switch. A recording is keyed by a
+SHA-256 of the whole prompt, so it replays only for the exact evaluation it was
+made from; every other evaluation raised `RecordingMissError` and the backend
+turned that into a 503. Raising remains the default — a silent substitution
+would hide that the panel was asked a question nothing had answered, which is
+the failure this lane deliberately made loud, and Varun C.'s
+`test_cached_mode_without_a_recording_raises_rather_than_stubbing` pins it.
+`GOVERNANCE_ALLOW_STUB_FALLBACK=1` opts into falling back, and the
+recommendation then reports `governance_mode="cached+stub"` and names the
+substitution in its rationale, exactly as `live` already labels a fallback to
+`cached`. **Affects:** `governance/tests/test_stub_fallback.py`; the rationale
+sentence now names which mode actually wrote the text.
+
+**2026-09-09 — Utkarsh (`uk/integration-dryrun`)** — `CRITICAL` drift is no
+longer described as a measured degradation. The performance agent used one
+sentence for `CONFIRMED` and `CRITICAL`, and `CRITICAL` has no statistics behind
+it — it fires the moment a critical error appears in the recent window, without
+running the two-proportion test — so `drop_pp` and `p_value` were `None` and the
+rationale read "a drop of n/a (p=n/a). This is a measured degradation, not
+noise." Seen live at 92.9% recent accuracy against a 71.9% baseline: the
+sentence asserted a drop that had not happened, in text a reviewer is meant to
+act on. Split into two branches.
+
+**2026-09-09 — Utkarsh (`uk/dashboard-filters`)** — Two list filters the
+dashboard had always sent and the API silently discarded. `list_recommendations`
+had no `status` parameter, so all four approvals tabs returned every
+recommendation; `list_decisions` had no `agent_id`, so the agent detail page
+fetched the newest 50 across every agent and filtered in the browser, rendering
+empty once another agent's run pushed one off the first page. Both now filter in
+SQL, and `status` is typed as the enum so a bad value is a 422 rather than
+another ignored parameter. **Why:** FastAPI drops unknown query parameters
+silently, which is the worst version of this bug — the UI looks wired up, a 200
+comes back, and the list never changes. **Affects:**
+`backend/tests/test_list_filters.py`, 11 tests.
+
+**2026-09-08 — Utkarsh (`uk/decision-ruling`)** — `POST
+/decisions/{id}/ruling`, the write path for `human_ruling`. One of the four
+trust-score components had no live source: `POST /decisions` hardcoded both
+`recommended_action` and `human_ruling` to null, so `human_agreement` was always
+dropped and every evaluation carried `AGREEMENT_EVIDENCE_INSUFFICIENT` and
+`WEIGHTS_RENORMALISED`. `DecisionCreate` gained an optional
+`recommended_action` (422 on ESCALATE, as ground truth already is) and the new
+endpoint records the human's verdict — REVIEWER or ADMIN, ESCALATE-only, 409 on
+a second ruling. The arc rules on its own escalations, with
+`ScriptedAgent.recommend()` wrong at the same error rate as a real decision so
+agreement carries signal instead of sitting at 100%. Verified live: agreement
+0.892, all four components at nominal weight, neither renormalisation code
+present.
+
 **2026-09-07 — Varun P. (`vp/freeze-cleanup`)** — Approving a `HOLD`
 recommendation no longer resets an agent's cooldown clock. `_record_decision`
 (`backend/app/api/v1/recommendations.py`) called `apply_policy_version` on

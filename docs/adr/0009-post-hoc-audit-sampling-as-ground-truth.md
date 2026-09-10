@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted and enforced in code as of 2026-09-09 — see Consequences.
 
 ## Context
 
@@ -42,6 +42,38 @@ engine's downstream math (Wilson bounds, drift detection) does not need to know 
 care which source fed it, as long as it's getting real 0/1 correctness signal.
 
 ## Consequences
+
+### Enforcement (added 2026-09-09)
+
+The mechanism is `app/services/audit_sampling.py`, called from decision ingest
+inside the same transaction, so a decision and its sample are written together
+or not at all. Three details worth recording:
+
+- **Selection is deterministic.** A decision is chosen by hashing its id, not by
+  drawing from `random.random()`. Random selection would have cost the project
+  its reproducibility claim: two runs of one seeded simulation would disagree
+  about which decisions a human was asked to check. The hash is uniform over
+  [0, 1), so the *rate* stays honest even though the *choice* is fixed.
+- **Escalations are never sampled.** Sampling checks what an agent did on its
+  own authority; an escalation was already handed to a human, and reviewing the
+  fact that a human was asked would inflate review burden without adding
+  evidence.
+- **A review does not overwrite the decision's recorded ground truth.** The
+  Decision section above describes reviewed samples eventually *becoming* the
+  ground-truth source, and the last bullet of this section flags the contract
+  gap that depends on — `TrustEvaluation` has no field distinguishing accuracy
+  built from full ground truth from accuracy built from a sampled slice — as
+  unresolved. Substituting one for the other in code would corrupt the
+  simulator's deterministic ground truth and break the demo arc's
+  reproducibility, to implement a contract change nobody has agreed. A review
+  is persisted as its own evidence, and `SAMPLE_REVIEW_DISAGREEMENT` is emitted
+  on a `DISAGREED` verdict.
+
+Verified live against Postgres: agent-02 at rung 0 sampled 200 of 200 decisions
+(rate 1.00), agent-01 at rung 2 sampled 41 of 200 against an expected 0.25.
+Review burden therefore falls as rungs are earned, which is the operational
+half of earned autonomy this ADR exists to deliver.
+
 
 - Review burden falls monotonically as an agent proves itself. This is the actual
   "ROI" the project promises: not just a bigger ceiling, but less oversight required
