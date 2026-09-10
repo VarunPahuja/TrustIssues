@@ -215,7 +215,16 @@ def approve_recommendation(
     `app/services/trust.py:agent_context` derives from the latest version's
     `effective_from`, which a no-op approval has no business touching.
     """
-    return _record_decision(db, user, rec_id, RecommendationStatus.APPROVED, body.reason)
+    out = _record_decision(db, user, rec_id, RecommendationStatus.APPROVED, body.reason)
+    # Commit before the response is built. The session dependency commits in
+    # its teardown, which runs after the endpoint returns, so a caller that
+    # reads back immediately can see pre-change state — measured at ~20-50ms on
+    # a populated database. Placed here, at the end of the route, rather than
+    # inside `_record_decision`: committing in the shared helper would make any
+    # later failure unrollbackable and break the all-or-nothing guarantee
+    # `test_approve_mid_transaction_failure_rolls_back_everything` pins.
+    db.commit()
+    return out
 
 
 @router.post(
@@ -233,4 +242,13 @@ def reject_recommendation(
     `Recommendation.status` to `REJECTED`. No policy version is written —
     the agent's limit does not change.
     """
-    return _record_decision(db, user, rec_id, RecommendationStatus.REJECTED, body.reason)
+    out = _record_decision(db, user, rec_id, RecommendationStatus.REJECTED, body.reason)
+    # Commit before the response is built. The session dependency commits in
+    # its teardown, which runs after the endpoint returns, so a caller that
+    # reads back immediately can see pre-change state — measured at ~20-50ms on
+    # a populated database. Placed here, at the end of the route, rather than
+    # inside `_record_decision`: committing in the shared helper would make any
+    # later failure unrollbackable and break the all-or-nothing guarantee
+    # `test_approve_mid_transaction_failure_rolls_back_everything` pins.
+    db.commit()
+    return out

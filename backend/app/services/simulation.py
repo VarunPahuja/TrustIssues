@@ -254,6 +254,20 @@ def execute_simulation_run(run_id: str, engine: Engine) -> None:
     wilson = wilson_lower_bound(correct, submitted) if submitted else None
     completed_at = datetime.now(UTC)
 
+    if failure is None:
+        # Before the run is marked completed, not after. A client that polls and
+        # sees `completed` should be able to read the agent's new limit in the
+        # very next request; applying afterwards left a window where the run was
+        # done and the clawback had not landed yet.
+        #
+        # Guarded at the call site as well as inside: the decisions are already
+        # committed and the run genuinely succeeded, so nothing here — including
+        # a bug in the clawback path itself — may turn it into a failure.
+        try:
+            _apply_any_clawback_the_run_earned(run_id, engine, agent_id)
+        except Exception as exc:  # noqa: BLE001 - a successful run stays successful
+            _log_clawback_attempt_failed(engine, run_id, agent_id, exc)
+
     final_session = Session(engine)
     try:
         final_row = final_session.get(SimulationRun, run_id)
@@ -288,3 +302,87 @@ def execute_simulation_run(run_id: str, engine: Engine) -> None:
         final_session.commit()
     finally:
         final_session.close()
+
+
+
+def _apply_any_clawback_the_run_earned(run_id: str, engine: Engine, agent_id: str) -> None:
+    """If the decisions just submitted have earned a clawback, apply it.
+
+    A run records decisions and stops. That left a real governance hole: a
+    degraded run could push drift to CRITICAL, the trust evaluation would
+    correctly read CLAWBACK, and the agent would keep its full limit
+    indefinitely — because a clawback only applies when a *recommendation* is
+    generated, and nothing generated one. Detection without action.
+
+    ADR-0004 is explicit that a reduction needs no human authorization, so
+    nothing should have to poke the system for one to take effect. Generating
+    the recommendation here closes that: `generate_recommendation` applies a
+    CLAWBACK immediately and leaves an INCREASE pending, which is exactly the
+    asymmetry we want.
+
+    Only clawbacks. An INCREASE legitimately waits for a human to approve it
+    from the dashboard, and generating one here would fill the approvals queue
+    from every simulation run.
+
+    Never fails the run. The run itself succeeded; the decisions are recorded
+    and a later evaluation would reach the same conclusion. A governance
+    outage — no recording in cached mode, no network in live mode — must not
+    retroactively mark a completed run as failed.
+    """
+    from shared.enums import Direction
+
+    from app.services.governance import generate_recommendation
+    from app.services.trust import compute_and_persist_trust_evaluation
+
+    session = Session(engine)
+    try:
+        agent = session.get(Agent, agent_id)
+        if agent is None:
+            return
+        evaluation, _ = compute_and_persist_trust_evaluation(session, agent)
+        if evaluation.direction is not Direction.CLAWBACK:
+            session.commit()
+            return
+        generate_recommendation(session, agent)
+        session.commit()
+    except Exception as exc:  # noqa: BLE001 - a governance outage must not fail a completed run
+        session.rollback()
+        _log_clawback_attempt_failed(engine, run_id, agent_id, exc)
+    finally:
+        session.close()
+
+
+def _log_clawback_attempt_failed(
+    engine: Engine, run_id: str, agent_id: str, exc: Exception
+) -> None:
+    """Record that the run finished but its clawback could not be applied.
+
+    Swallowing this silently would be the worst outcome: an agent that earned a
+    clawback, did not get one, and left no trace of why.
+    """
+    session = Session(engine)
+    try:
+        append_entry(
+            session,
+            id=f"log-{uuid.uuid4().hex[:12]}",
+            ts=datetime.now(UTC),
+            actor="system",
+            actor_type="system",
+            event_type="simulation_run.clawback_not_applied",
+            entity_type="simulation_run",
+            entity_id=run_id,
+            payload={
+                "agent_id": agent_id,
+                "error": f"{type(exc).__name__}: {exc}",
+                "reason": (
+                    "The run completed and its decisions are recorded, but the "
+                    "clawback they earned could not be applied. A later "
+                    "evaluation will reach the same conclusion."
+                ),
+            },
+        )
+        session.commit()
+    except Exception:  # noqa: BLE001 - nothing useful left to do
+        session.rollback()
+    finally:
+        session.close()

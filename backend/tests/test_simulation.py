@@ -109,11 +109,19 @@ def test_same_seed_produces_identical_decision_sequences(client, admin_headers, 
     `(agent_id, phase, seed)` deliberately (see its docstring) precisely so
     that two *different* agents given the same numeric seed do NOT collide —
     determinism is a property of repeating the exact same run, not of the
-    bare seed value alone."""
-    resp_a = _start_run(client, admin_headers, agent_id="agent-01", phase="degraded", seed=99, invoice_count=15)
+    bare seed value alone.
+
+    Uses the `good` phase, not `degraded`. `current_limit` is one of the
+    generator's inputs (invoice amounts scale with it), and a completed run now
+    applies any clawback its decisions earned — so a degraded run *changes* the
+    limit, and the second run would legitimately not be given the same inputs
+    as the first. That is the clawback working, not a determinism failure.
+    `test_simulation_phases.py::test_plans_are_reproducible` covers the pure
+    generator directly, where no state can move underneath it."""
+    resp_a = _start_run(client, admin_headers, agent_id="agent-01", phase="good", seed=99, invoice_count=15)
     run_a = _poll_until_done(client, admin_headers, resp_a.json()["run_id"])
 
-    resp_b = _start_run(client, admin_headers, agent_id="agent-01", phase="degraded", seed=99, invoice_count=15)
+    resp_b = _start_run(client, admin_headers, agent_id="agent-01", phase="good", seed=99, invoice_count=15)
     run_b = _poll_until_done(client, admin_headers, resp_b.json()["run_id"])
 
     assert run_a["decisions_submitted"] == run_b["decisions_submitted"] == 15
