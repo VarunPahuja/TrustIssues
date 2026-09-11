@@ -131,13 +131,88 @@ def test_a_good_run_that_makes_a_critical_error_still_claws_back(
 
 
 def test_a_good_run_does_not_raise_the_limit_either(client, admin_headers, db_engine):
-    """An INCREASE still waits for a human. Only clawbacks are applied here —
-    generating increases from every run would fill the approvals queue and
-    bypass the one step ADR-0004 requires."""
+    """An INCREASE still waits for a human. A run may *ask* for one, but it
+    must never apply it — that is the one step ADR-0004 requires."""
     before_limit, _ = _agent(db_engine)
     _run(client, admin_headers, "agent-01", "good", count=80)
     after_limit, _ = _agent(db_engine)
     assert after_limit <= before_limit, "a run must never raise a limit on its own"
+
+
+def test_an_earned_increase_becomes_an_approval_request(client, admin_headers, db_engine):
+    """The other half of ADR-0004, which had no producer at all.
+
+    Restricting the post-run action to clawbacks meant a good run could raise
+    the trust score until the ladder read INCREASE and nothing ever created
+    the recommendation — so no approval request appeared and the dashboard
+    showed an increase that could not be acted on. Only the /demo console
+    generated one.
+
+    Two runs, not one. The seeded baseline history is close to perfect, so the
+    *first* real run at the good phase's ~95% reads as a confirmed drop
+    against it and legitimately claws back (drift CONFIRMED,
+    CLAWBACK_DRIFT). The second run is evaluated against a baseline that
+    includes real decisions, which is when an increase becomes earnable.
+    """
+    from shared.enums import Direction, RecommendationStatus
+
+    from app.models import Agent
+    from app.services.trust import compute_trust_evaluation
+
+    _run(client, admin_headers, "agent-01", "good", count=200, seed=99)
+    _run(client, admin_headers, "agent-01", "good", count=200, seed=99)
+
+    with Session(db_engine) as session:
+        evaluation = compute_trust_evaluation(session, session.get(Agent, "agent-01"))
+    assert evaluation.direction is Direction.INCREASE, (
+        f"precondition: two good runs should earn an increase, got "
+        f"{evaluation.direction} with {list(evaluation.reason_codes)}"
+    )
+
+    recs = client.get(
+        "/api/v1/recommendations?agent_id=agent-01", headers=admin_headers
+    ).json()["items"]
+    pending = [
+        r for r in recs
+        if r["direction"] == Direction.INCREASE.value
+        and r["status"] == RecommendationStatus.PENDING.value
+    ]
+    assert pending, (
+        "an earned increase must reach the approvals queue; "
+        f"got {[(r['direction'], r['status']) for r in recs]}"
+    )
+
+
+def test_the_earned_increase_is_not_applied_by_the_run(client, admin_headers, db_engine):
+    """Asking is not the same as taking. The request exists; the limit does
+    not move until a human approves it."""
+    _run(client, admin_headers, "agent-01", "good", count=200, seed=99)
+    limit_before, rung_before = _agent(db_engine)
+    _run(client, admin_headers, "agent-01", "good", count=200, seed=99)
+    assert _agent(db_engine) == (limit_before, rung_before), (
+        "a run must never raise a limit on its own"
+    )
+
+
+def test_a_second_run_does_not_stack_a_duplicate_request(client, admin_headers, db_engine):
+    """Re-running a simulation is something a person does freely while
+    rehearsing. Stacking near-identical approval requests would bury the one
+    that matters."""
+    _run(client, admin_headers, "agent-01", "good", count=200, seed=99)
+    _run(client, admin_headers, "agent-01", "good", count=200, seed=99)
+
+    total_with_pending = client.get(
+        "/api/v1/recommendations?agent_id=agent-01", headers=admin_headers
+    ).json()["total"]
+
+    _run(client, admin_headers, "agent-01", "good", count=200, seed=99)
+    after = client.get(
+        "/api/v1/recommendations?agent_id=agent-01", headers=admin_headers
+    ).json()["total"]
+
+    assert after == total_with_pending, (
+        "a pending request must not be duplicated by a repeat run"
+    )
 
 
 def test_a_run_at_the_floor_stays_at_the_floor(client, admin_headers, db_engine):
@@ -176,7 +251,7 @@ def test_the_run_still_completes_if_governance_is_unavailable(
     def boom(*_args, **_kwargs):
         raise RuntimeError("governance is down")
 
-    monkeypatch.setattr(sim, "_apply_any_clawback_the_run_earned", lambda *a, **k: boom())
+    monkeypatch.setattr(sim, "_act_on_what_the_run_earned", lambda *a, **k: boom())
 
     row = _run(client, admin_headers, "agent-01", "degraded")
     assert row["status"] == "completed", "the run itself succeeded"

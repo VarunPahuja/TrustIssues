@@ -121,12 +121,27 @@ def generate_decision_plan(
     given the same numeric seed don't produce the same invoices as each
     other — only a genuine repeat of the same (agent, phase, seed) does.
 
-    `invoice_id`s are likewise deterministic and namespaced by
-    (agent_id, phase, seed, index): a second run with the exact same
-    (agent, phase, seed) reuses the same invoice ids on purpose, matching
-    `_create_decision`'s own "an invoice is a fact recorded once" rule
-    rather than fighting it — the invoices really are the same synthetic
-    invoices being reprocessed, not new ones that happen to collide.
+    `invoice_id`s are deterministic and namespaced by **every input that
+    decides an invoice's content** — (agent_id, phase, seed, current_limit,
+    index). A repeat run with all five identical reuses the same invoice ids
+    on purpose, matching `_create_decision`'s own "an invoice is a fact
+    recorded once" rule rather than fighting it: those really are the same
+    synthetic invoices being reprocessed.
+
+    `current_limit` has to be in the id, and leaving it out was a real bug.
+    Amounts are drawn from `randint(10, max(current_limit * 2, 1000))`, so
+    the limit decides both the amount and — through the shared `rng` stream —
+    every ground truth after it. An id that omitted it therefore promised
+    "same id, same invoice" and broke that promise the moment the agent's
+    limit moved, which is the one thing this whole system exists to do.
+    `_create_decision` never overwrites an existing invoice's `amount` or
+    `ground_truth_action`, so a re-run at a new limit wrote decisions whose
+    recorded ground truth belonged to a *different* invoice: accuracy was
+    then scored against the wrong answer key. Observed live on agent-01 —
+    after two clawbacks took it from INR 2,500 to the floor, all 20 invoices
+    in its critical-error window still held amounts up to INR 4,859 drawn at
+    the old limit, and a phantom critical error in there pinned drift to
+    CRITICAL so no good run could ever clear it.
     """
     rng = random.Random(f"{agent_id}:{phase.value}:{seed}")
     params = _PHASE_PARAMS[phase]
@@ -135,7 +150,7 @@ def generate_decision_plan(
 
     plan: list[PlannedDecision] = []
     for i in range(count):
-        invoice_id = f"sim-{agent_id}-{phase.value}-{seed}-{i:05d}"
+        invoice_id = f"sim-{agent_id}-{phase.value}-{seed}-L{current_limit}-{i:05d}"
         amount = rng.randint(lo, hi)
 
         if rng.random() < params["p_ground_truth_reject"]:
@@ -264,9 +279,9 @@ def execute_simulation_run(run_id: str, engine: Engine) -> None:
         # committed and the run genuinely succeeded, so nothing here — including
         # a bug in the clawback path itself — may turn it into a failure.
         try:
-            _apply_any_clawback_the_run_earned(run_id, engine, agent_id)
+            _act_on_what_the_run_earned(run_id, engine, agent_id)
         except Exception as exc:  # noqa: BLE001 - a successful run stays successful
-            _log_clawback_attempt_failed(engine, run_id, agent_id, exc)
+            _log_recommendation_attempt_failed(engine, run_id, agent_id, exc)
 
     final_session = Session(engine)
     try:
@@ -305,8 +320,26 @@ def execute_simulation_run(run_id: str, engine: Engine) -> None:
 
 
 
-def _apply_any_clawback_the_run_earned(run_id: str, engine: Engine, agent_id: str) -> None:
-    """If the decisions just submitted have earned a clawback, apply it.
+def _has_pending_recommendation(session: Session, agent_id: str) -> bool:
+    """Whether this agent already has a recommendation awaiting a human."""
+    from shared.enums import RecommendationStatus
+    from sqlalchemy import select
+
+    from app.models import Recommendation
+
+    return (
+        session.execute(
+            select(Recommendation.id)
+            .where(Recommendation.agent_id == agent_id)
+            .where(Recommendation.status == RecommendationStatus.PENDING)
+            .limit(1)
+        ).first()
+        is not None
+    )
+
+
+def _act_on_what_the_run_earned(run_id: str, engine: Engine, agent_id: str) -> None:
+    """Turn the run's own evidence into a recommendation, if it earned one.
 
     A run records decisions and stops. That left a real governance hole: a
     degraded run could push drift to CRITICAL, the trust evaluation would
@@ -320,9 +353,22 @@ def _apply_any_clawback_the_run_earned(run_id: str, engine: Engine, agent_id: st
     CLAWBACK immediately and leaves an INCREASE pending, which is exactly the
     asymmetry we want.
 
-    Only clawbacks. An INCREASE legitimately waits for a human to approve it
-    from the dashboard, and generating one here would fill the approvals queue
-    from every simulation run.
+    Both directions, not just clawbacks. Restricting this to CLAWBACK left
+    the other half of ADR-0004 with no producer at all: a good run would
+    raise the trust score until the ladder read INCREASE, and nothing
+    anywhere created the recommendation, so no approval request ever appeared
+    and the dashboard showed an increase that could not be acted on. The only
+    code in the whole project that generated one was the /demo console.
+
+    `generate_recommendation` already draws exactly the line we want — it
+    applies a CLAWBACK in the same transaction and leaves an INCREASE
+    `PENDING` — so handing it both directions produces the asymmetry rather
+    than bypassing it. A run still never raises a limit by itself.
+
+    A run that earns nothing (`HOLD`) writes nothing. And an agent that
+    already has a pending recommendation does not get a second one: re-running
+    a simulation is something a person does freely while rehearsing, and
+    stacking near-identical approval requests would bury the one that matters.
 
     Never fails the run. The run itself succeeded; the decisions are recorded
     and a later evaluation would reach the same conclusion. A governance
@@ -340,25 +386,33 @@ def _apply_any_clawback_the_run_earned(run_id: str, engine: Engine, agent_id: st
         if agent is None:
             return
         evaluation, _ = compute_and_persist_trust_evaluation(session, agent)
-        if evaluation.direction is not Direction.CLAWBACK:
+        if evaluation.direction not in (Direction.CLAWBACK, Direction.INCREASE):
+            session.commit()
+            return
+        if evaluation.direction is Direction.INCREASE and _has_pending_recommendation(
+            session, agent_id
+        ):
+            # Already waiting on a human. A second request for the same rung
+            # would not tell anyone anything new.
             session.commit()
             return
         generate_recommendation(session, agent)
         session.commit()
     except Exception as exc:  # noqa: BLE001 - a governance outage must not fail a completed run
         session.rollback()
-        _log_clawback_attempt_failed(engine, run_id, agent_id, exc)
+        _log_recommendation_attempt_failed(engine, run_id, agent_id, exc)
     finally:
         session.close()
 
 
-def _log_clawback_attempt_failed(
+def _log_recommendation_attempt_failed(
     engine: Engine, run_id: str, agent_id: str, exc: Exception
 ) -> None:
-    """Record that the run finished but its clawback could not be applied.
+    """Record that the run finished but its recommendation was never written.
 
     Swallowing this silently would be the worst outcome: an agent that earned a
-    clawback, did not get one, and left no trace of why.
+    clawback and did not get one, or an increase nobody was ever asked to
+    approve, with no trace of why either went missing.
     """
     session = Session(engine)
     try:
@@ -368,7 +422,7 @@ def _log_clawback_attempt_failed(
             ts=datetime.now(UTC),
             actor="system",
             actor_type="system",
-            event_type="simulation_run.clawback_not_applied",
+            event_type="simulation_run.recommendation_not_generated",
             entity_type="simulation_run",
             entity_id=run_id,
             payload={

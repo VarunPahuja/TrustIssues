@@ -6,6 +6,54 @@ ADR.
 
 ---
 
+**2026-09-11 — Utkarsh (`uk/integration-dryrun`)** — An invoice id now names
+exactly one invoice, and a run that earns an increase actually asks for it. Two
+defects, found from one report ("good phase suggests an increase but no
+approval request appears"). **(1)** `generate_decision_plan`
+(`backend/app/services/simulation.py`) built `invoice_id` from
+(agent, phase, seed, index) while the *content* also depended on
+`current_limit` — amounts are drawn from `randint(10, max(current_limit * 2,
+1000))`, and that draw shifts every ground truth after it through the shared
+`rng` stream. `_create_decision` never overwrites an existing invoice's
+`amount` or `ground_truth_action` (an invoice is a fact recorded once), so a
+re-run at a new limit wrote decisions whose recorded ground truth belonged to a
+*different* invoice, and accuracy was scored against the wrong answer key.
+Confirmed live on agent-01: after two clawbacks took it from INR 2,500 to the
+floor, **all 20 invoices in its critical-error window still held amounts up to
+INR 4,859 drawn at the old limit** — 20 of 20 mismatched against the plan that
+produced those decisions — and a phantom critical error among them pinned drift
+to `CRITICAL`, so no good run could ever clear it and the agent was stuck at
+`CLAWBACK` forever. `current_limit` is now part of the id, which makes the id a
+function of every input that decides the content; a repeat run at the *same*
+limit still reuses its invoices, preserving the original intent.
+**(2)** `_apply_any_clawback_the_run_earned` returned early for anything that
+was not a `CLAWBACK`, which left the other half of ADR-0004 with no producer at
+all: nothing anywhere generated an `INCREASE` recommendation, so a good run
+raised the trust score until the ladder read INCREASE and no approval request
+ever appeared. The only code in the project that generated one was the `/demo`
+console. Renamed `_act_on_what_the_run_earned` and now handles both directions
+— `generate_recommendation` already applies a `CLAWBACK` in the same
+transaction and leaves an `INCREASE` `PENDING`, so handing it both produces the
+asymmetry rather than bypassing it. Guarded against stacking duplicates when an
+agent already has a pending recommendation, since re-running a simulation is
+something a person does freely while rehearsing. **Why both were invisible:**
+the backend suite runs on SQLite against a freshly seeded database where no
+limit has moved yet, so the id collision cannot occur there; and the clawback
+tests asserted the clawback path only. **Affects:**
+`backend/tests/test_simulation_invoice_identity.py` (7 tests, including the
+invariant "an id never names two different invoices" across every rung) and
+three new tests in `test_simulation_clawback.py`; 300 backend tests pass. The
+audit event for a failed attempt is renamed
+`simulation_run.recommendation_not_generated`, since it no longer covers only
+clawbacks. Verified live on a reset database: good run -> `PENDING` INCREASE to
+INR 5,000 with the limit unchanged, two further identical runs adding nothing,
+human approval -> INR 5,000, degraded run -> automatic CLAWBACK to INR 2,500
+with no human step, and 700 of 700 stored invoices across two different limits
+matching their own plan (0 mismatches, 0 amounts impossible at their own
+limit). **Note for anyone reading this table:** the existing dev database had
+to be reset — the corrupt invoice rows could not be repaired in place, because
+the correct content for an already-written id is unknowable after the fact.
+
 **2026-09-11 — Utkarsh (`uk/integration-dryrun`)** — The project is
 deployable: backend on Render, frontend on Vercel. Three things blocked it, and
 each one failed silently rather than loudly. (1) CORS was hardcoded to
