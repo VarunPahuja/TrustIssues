@@ -11,7 +11,6 @@ not blindly accepted from a diff.
 
 from __future__ import annotations
 
-import os
 import sys
 from logging.config import fileConfig
 from pathlib import Path
@@ -29,6 +28,7 @@ for path in (_BACKEND_DIR, _REPO_ROOT):
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+from app.config import database_url
 from app.models import Base
 
 config = context.config
@@ -38,8 +38,11 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-_DEFAULT_DATABASE_URL = "postgresql://aagp:aagp_dev_password@localhost:5432/aagp"
-config.set_main_option("sqlalchemy.url", os.environ.get("DATABASE_URL", _DEFAULT_DATABASE_URL))
+# `app.config.database_url()` is the single reader of DATABASE_URL, so
+# migrations and the running app can never disagree about which database they
+# are pointed at — including the `postgres://` -> `postgresql://` fix that
+# some managed providers make necessary.
+config.set_main_option("sqlalchemy.url", database_url())
 
 
 def run_migrations_offline() -> None:

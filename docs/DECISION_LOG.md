@@ -6,6 +6,44 @@ ADR.
 
 ---
 
+**2026-09-11 — Utkarsh (`uk/integration-dryrun`)** — The project is
+deployable: backend on Render, frontend on Vercel. Three things blocked it, and
+each one failed silently rather than loudly. (1) CORS was hardcoded to
+`http://localhost:3000` (`backend/app/main.py`), so a deployed dashboard would
+be blocked by the browser while the API answered every request correctly —
+a misconfigured deployment and a backend with no data are indistinguishable
+from the UI. Now `CORS_ALLOW_ORIGINS`, comma-separated, defaulting to the dev
+origin and never to `*`. (2) The dashboard never sent `X-User-Role` at all
+(`frontend/src/lib/api-client.ts` sent a `Bearer` token the backend ignores);
+it had admin privileges purely because `current_user` defaults a header-less
+request to ADMIN. That made the frontend's identity an accident of a
+server-side default, invisible from the frontend code. It now sends the role
+explicitly (`NEXT_PUBLIC_API_ROLE`, default `admin`), and `AUTH_DEFAULT_ROLE`
+lets a deployment default anonymous callers to read-only AUDITOR instead.
+(3) `DATABASE_URL` was read independently in three places
+(`app/deps.py`, `app/seed.py`, `alembic/env.py`), none of which handled the
+`postgres://` scheme several managed providers hand out — SQLAlchemy 2.0
+dropped that alias and raises `NoSuchModuleError` naming a plugin rather than
+the scheme, so the cause is hard to see. All three now read
+`app.config.database_url()`, which normalises it. **Why a new `app/config.py`:**
+every one of these is a value that differs between a laptop and a host, and
+each needed a default that leaves local work and the existing suite behaving
+exactly as before. **Deliberately not fixed:** identity is still a header the
+caller chooses, so `AUTH_DEFAULT_ROLE=auditor` narrows what an
+*unauthenticated* request can do and nothing about one claiming to be an admin
+— pinned as `test_an_explicit_admin_header_still_wins` so the limit stays
+visible rather than being mistaken for a security boundary. Real auth remains
+out of scope. **Affects:** `render.yaml` and `docs/DEPLOYMENT.md` are new;
+`backend/tests/test_deploy_config.py`, 20 tests. Verified live in the
+deployment posture (`AUTH_DEFAULT_ROLE=auditor`): anonymous `GET /agents` 200,
+anonymous `POST /simulation/runs` and `POST /decisions` both 403, the same POST
+with `X-User-Role: admin` 201, preflight allowed for the configured origin and
+absent for an unknown one. `backend/openapi.json` is unchanged — no endpoint
+or schema moved. Free-tier caveats (the service sleeps after ~15 minutes, and
+`BackgroundTasks` simulation runs can be stranded mid-flight by a cold start)
+are documented rather than worked around; the recommendation is to demo
+locally.
+
 **2026-09-09 — Utkarsh (`uk/integration-dryrun`)** — The degraded simulation
 phase now actually degrades. `_PHASE_PARAMS`
 (`backend/app/services/simulation.py`) gave `degraded` ~86% expected accuracy

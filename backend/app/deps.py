@@ -10,7 +10,6 @@ free just by depending on it.
 
 from __future__ import annotations
 
-import os
 from collections.abc import Callable, Generator
 from typing import Annotated
 
@@ -18,6 +17,7 @@ from fastapi import Depends, Header, HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from app import config
 from app.schemas.envelope import ErrorBody
 from app.schemas.user import CurrentUser, Role
 
@@ -37,8 +37,10 @@ def current_user(
 ) -> CurrentUser:
     """Read `X-User-Role` and return the stubbed user for that role.
 
-    Defaults to ADMIN when the header is absent — a dev convenience so
-    `/docs` and a bare `curl` work without extra setup. Any recognized role
+    Defaults to `config.default_role()` when the header is absent — ADMIN
+    unless `AUTH_DEFAULT_ROLE` says otherwise, so `/docs` and a bare `curl`
+    still work with no setup locally while a public deployment can default
+    an anonymous caller to read-only AUDITOR instead. Any recognized role
     string works case-insensitively; an unrecognized one is a 401, not a
     silent fallback (the same "fail loud on a typo" reasoning
     `governance/governance/agents/base.py`'s `require_stub_mode` already
@@ -46,7 +48,7 @@ def current_user(
     "everyone got admin" instead of "the demo obviously isn't working").
     """
     if x_user_role is None:
-        return _STUB_USERS[Role.ADMIN]
+        return _STUB_USERS[config.default_role()]
     try:
         role = Role(x_user_role.strip().lower())
     except ValueError as exc:
@@ -89,7 +91,10 @@ def require_role(*allowed: Role):
     return _check
 
 
-DEFAULT_DATABASE_URL = "postgresql://aagp:aagp_dev_password@localhost:5432/aagp"
+# Re-exported from `app.config`, which is the single place the connection
+# string is read and normalised. Kept as a module-level name here because
+# callers already import it from this module.
+DEFAULT_DATABASE_URL = config.DEFAULT_DATABASE_URL
 
 _engine = None
 _session_maker: sessionmaker | None = None
@@ -106,8 +111,7 @@ def _default_session_maker() -> sessionmaker:
     """
     global _engine, _session_maker
     if _session_maker is None:
-        database_url = os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL)
-        _engine = create_engine(database_url)
+        _engine = create_engine(config.database_url())
         _session_maker = sessionmaker(bind=_engine)
     return _session_maker
 

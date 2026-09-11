@@ -23,7 +23,6 @@ exactly the way a future decision-ingest endpoint will.
 from __future__ import annotations
 
 import argparse
-import os
 from datetime import UTC, datetime, timedelta
 
 from shared.constants import limit_of
@@ -56,6 +55,7 @@ from shared.reason_codes import (
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session
 
+from app import config
 from app.models import (
     Agent,
     Approval,
@@ -78,7 +78,7 @@ from app.policy.types import PolicyVersion as PolicyVersionView
 from app.schemas.user import Role
 from app.services.trust import jsonable as _jsonable
 
-DEFAULT_DATABASE_URL = "postgresql://aagp:aagp_dev_password@localhost:5432/aagp"
+DEFAULT_DATABASE_URL = config.DEFAULT_DATABASE_URL
 
 # One fixed anchor, matching app/fixtures/*.py's own `_NOW` exactly — every
 # timestamp below is relative to this, never to `datetime.now()`, so two runs
@@ -906,7 +906,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    database_url = os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL)
+    database_url = config.database_url()
     engine = create_engine(database_url)
     with Session(engine) as session:
         if _already_seeded(session):

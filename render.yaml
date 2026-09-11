@@ -1,0 +1,84 @@
+# Render blueprint for the backend. Committed rather than typed into the
+# dashboard so the build and start commands are reviewable and survive being
+# recreated. Render reads this on "New + -> Blueprint".
+#
+# The frontend is not here: it deploys on Vercel, which has no equivalent
+# file for project settings (only build overrides). See docs/DEPLOYMENT.md.
+
+services:
+  - type: web
+    name: aagp-backend
+    runtime: python
+    plan: free
+    branch: uk/integration-dryrun
+
+    # rootDir is deliberately NOT set, so the build and start commands run
+    # from the repository root. `app` imports `shared.enums`,
+    # `shared.constants` and `shared.contracts`, and `shared/` is a plain
+    # directory at the root with no pyproject.toml of its own — it resolves
+    # only because the working directory is the root. Setting rootDir to
+    # `backend` makes every one of those imports fail at startup.
+
+    # Four editable installs, matching `make install`. `trust` and
+    # `governance` are separate distributions that `app` imports
+    # (`trust_engine.evaluate`, `governance.coordinator`); `simulator` is
+    # here because the backend's simulation service shares its generator.
+    buildCommand: pip install -e trust -e simulator -e governance -e backend
+
+    # Three steps, each needed on a hosted deployment and each safe to repeat:
+    #   alembic upgrade head  — a fresh managed database is empty, so without
+    #                           this every endpoint 500s on a missing table.
+    #   app.seed              — creates the three agents and the role users.
+    #                           It checks for existing data first and does
+    #                           nothing if already seeded, so restarts never
+    #                           duplicate or wipe anything.
+    #   uvicorn               — no --reload: it restarts the worker
+    #                           mid-request and drops in-flight simulation
+    #                           decisions. $PORT and 0.0.0.0 are required for
+    #                           Render to reach the process at all.
+    startCommand: >-
+      python -m alembic -c backend/alembic.ini upgrade head &&
+      python -m app.seed &&
+      python -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port $PORT
+
+    healthCheckPath: /api/v1/health
+
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aagp-db
+          property: connectionString
+
+      # Pinned rather than left to Render's default, which has moved before.
+      # backend/pyproject.toml requires >=3.11.
+      - key: PYTHON_VERSION
+        value: "3.12.6"
+
+      # Canned governance opinions, zero LLM calls and no API key. This is
+      # what the demo arc runs on anyway: a cached recording is keyed by a
+      # hash of the whole prompt, so it only replays for the exact evaluation
+      # it was recorded from.
+      - key: GOVERNANCE_MODE
+        value: stub
+
+      - key: LOG_LEVEL
+        value: INFO
+
+      # An anonymous request — one sending no X-User-Role — is treated as
+      # read-only AUDITOR here instead of the local ADMIN default, so a bare
+      # curl against a public URL cannot move a limit or start a run.
+      # NOT authentication: see docs/DEPLOYMENT.md.
+      - key: AUTH_DEFAULT_ROLE
+        value: auditor
+
+      # Set this to the Vercel URL after the frontend's first deploy, then
+      # redeploy. Until it is set, the deployed dashboard is CORS-blocked and
+      # renders empty while the API itself answers fine.
+      - key: CORS_ALLOW_ORIGINS
+        sync: false
+
+databases:
+  - name: aagp-db
+    plan: free
+    databaseName: aagp
+    user: aagp

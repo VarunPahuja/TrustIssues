@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from shared.constants import SCHEMA_VERSION
 
 from app.api.v1 import agents, audit, decisions, health, recommendations, simulation
+from app.config import cors_allow_origins
 from app.errors import register_exception_handlers
 
 app = FastAPI(
@@ -26,13 +27,18 @@ app = FastAPI(
     version=SCHEMA_VERSION,
 )
 
-# The frontend's Next.js dev server (frontend/package.json: "dev": "next
-# dev", default port 3000). No credentials/cookies are used yet — auth is a
-# header, not a cookie (app/deps.py) — so a specific origin rather than "*"
-# costs nothing and is one less thing to widen later.
+# Which browser origins may call this API. `CORS_ALLOW_ORIGINS` (comma-
+# separated) in a deployment; the Next.js dev server by default, so a local
+# checkout needs no configuration. No credentials/cookies are used — auth is
+# a header, not a cookie (app/deps.py) — so naming exact origins rather than
+# "*" costs nothing and keeps the check meaningful.
+#
+# This is read at import time on purpose: the allowed origins are part of how
+# the app is deployed, not a per-request decision, and a value that changed
+# under a running process would make a CORS failure impossible to reproduce.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=cors_allow_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

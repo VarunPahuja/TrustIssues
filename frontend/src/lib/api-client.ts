@@ -4,6 +4,8 @@
  * Typed fetch-based API client — aligned to backend/openapi.json.
  *
  * DESIGN:
+ *  - Role sent as X-User-Role (NEXT_PUBLIC_API_ROLE, default admin) — the
+ *    backend's identity mechanism until real auth lands
  *  - JWT token read from localStorage (prototype-acceptable tradeoff, documented)
  *  - All requests go to NEXT_PUBLIC_API_BASE_URL (env var)
  *  - MSW intercepts all fetch calls in dev when NEXT_PUBLIC_MSW_ENABLED=true
@@ -36,6 +38,21 @@ const API_V1 = `${API_BASE}/api/v1`;
 // Auth
 // ---------------------------------------------------------------------------
 
+// The role the dashboard acts as. The backend reads `X-User-Role` and has no
+// real authentication behind it yet (backend/app/deps.py), so this header is
+// the identity — and it is sent explicitly rather than left off.
+//
+// Leaving it off used to work: the backend defaulted a header-less request to
+// ADMIN as a dev convenience. That made the dashboard's privileges an
+// accident of a server-side default, invisible from this file, and it broke
+// the moment a deployment defaulted anonymous callers to read-only AUDITOR
+// instead. Naming the role here means the requests say what they are.
+//
+// ADMIN is the default because the dashboard authorises limit increases and
+// starts simulation runs, which ADMIN alone may do. Set
+// NEXT_PUBLIC_API_ROLE=reviewer or =auditor to see the UI as those roles.
+const API_ROLE = process.env.NEXT_PUBLIC_API_ROLE ?? "admin";
+
 function getAuthHeaders(): HeadersInit {
   const token =
     typeof window !== "undefined"
@@ -43,6 +60,7 @@ function getAuthHeaders(): HeadersInit {
       : null;
   return {
     "Content-Type": "application/json",
+    "X-User-Role": API_ROLE,
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
