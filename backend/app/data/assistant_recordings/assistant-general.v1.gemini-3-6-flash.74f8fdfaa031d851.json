@@ -1,0 +1,12 @@
+{
+  "agent_name": "assistant-general",
+  "cache_key": "assistant-general.v1.gemini-3-6-flash.74f8fdfaa031d851",
+  "evidence_hash": "74f8fdfaa031d851",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "8df1e4932e7c59a4",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-12T06:07:43+00:00",
+  "response_text": "In the simulator, every synthetic invoice carries a deterministic correct answer for free. That stops being true once real invoices arrive \u2014 nobody hands the system the right answer up front. ADR-0009's answer is post-hoc audit sampling: a slice of an agent's decisions gets pulled for human review after the fact, at a rate that shrinks as the agent climbs the ladder (100% reviewed at the floor rung, down to 5% at the top). Those reviewed samples become the accuracy evidence the trust score is built from. It's also why the Wilson lower bound matters more, not less, at high trust \u2014 the reviewed sample shrinks even as the agent's raw decision volume keeps growing, so the confidence interval has to correctly widen around a smaller, sampled n rather than the system quietly trusting a number it can no longer fully verify.",
+  "schema_version": "1"
+}

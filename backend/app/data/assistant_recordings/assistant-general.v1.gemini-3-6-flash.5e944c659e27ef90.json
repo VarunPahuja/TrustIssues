@@ -1,0 +1,12 @@
+{
+  "agent_name": "assistant-general",
+  "cache_key": "assistant-general.v1.gemini-3-6-flash.5e944c659e27ef90",
+  "evidence_hash": "5e944c659e27ef90",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "f475de577b18f2af",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-12T06:07:43+00:00",
+  "response_text": "Two things, on either side of it, and neither is a prompt. Before an increase reaches a human, the trust engine \u2014 pure arithmetic, no LLM \u2014 computes the evidence-supported limit, and the governance panel can never propose above that number; there's an assertion in the coordinator itself that raises if it ever tried. After the panel proposes something, the backend's hard ceiling clamps it down again if it's still too high, and logs the discrepancy when it does (`Recommendation.clamped`/`clamped_from`). And even a fully evidence-backed, unclamped INCREASE still sits PENDING until an admin clicks Approve on the Recommendations tab \u2014 nothing changes an agent's actual spending limit except a human authorization, or an automatic clawback in the other direction (ADR-0001, ADR-0003, ADR-0004).",
+  "schema_version": "1"
+}

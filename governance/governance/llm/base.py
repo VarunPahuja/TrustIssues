@@ -90,6 +90,14 @@ class LLMClient(Protocol):
 
     def generate(self, prompt: Prompt, *, timeout_s: float | None = None) -> str: ...
 
+    # Added for backend/app/services/assistant_llm.py (the read-only chat assistant).
+    # `generate()` forces the AgentOpinion JSON schema into every request on all three
+    # providers — right for a panel agent, wrong for a free-text answer. `generate_text`
+    # shares the same client, config, Pacer and error-translation as `generate()`; it
+    # just skips the structured-output constraint. Additive only: no existing behaviour
+    # changes, and the coordinator/agents in this lane still call `generate()` exclusively.
+    def generate_text(self, prompt: Prompt, *, timeout_s: float | None = None) -> str: ...
+
     @property
     def has_key(self) -> bool: ...
 

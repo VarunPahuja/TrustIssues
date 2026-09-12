@@ -115,6 +115,18 @@ class ClaudeClient:
             },
         }
 
+    def build_request_text(self, prompt: Prompt) -> dict:
+        """Same request as `build_request`, minus the structured-output constraint.
+
+        For a caller that wants prose, not an `AgentOpinion` — see `generate_text`.
+        """
+        return {
+            "model": self.config.model,
+            "max_tokens": self.config.max_tokens,
+            "system": prompt.system,
+            "messages": [{"role": "user", "content": prompt.user}],
+        }
+
     def generate(
         self,
         prompt: Prompt,
@@ -122,9 +134,34 @@ class ClaudeClient:
         client: object | None = None,
         timeout_s: float | None = None,
     ) -> str:
-        """Send one prompt, return Claude's raw text.
+        """Send one prompt, return Claude's raw text, constrained to the
+        `AgentOpinion` schema (see `build_request`).
 
         `client` is injectable so tests can pass a stub without the SDK installed.
+        """
+        return self._send(self.build_request(prompt), client=client, timeout_s=timeout_s)
+
+    def generate_text(
+        self,
+        prompt: Prompt,
+        *,
+        client: object | None = None,
+        timeout_s: float | None = None,
+    ) -> str:
+        """Same call as `generate`, but the response is unconstrained prose —
+        for a caller that isn't asking for an `AgentOpinion` (see `base.LLMClient`).
+        """
+        return self._send(self.build_request_text(prompt), client=client, timeout_s=timeout_s)
+
+    def _send(
+        self,
+        request: dict,
+        *,
+        client: object | None = None,
+        timeout_s: float | None = None,
+    ) -> str:
+        """The API call both `generate` and `generate_text` make — key check, pacing,
+        and error translation, shared so the two differ only in the request they send.
         """
         if not self.config.has_key:
             raise LLMAuthError(
@@ -139,7 +176,7 @@ class ClaudeClient:
         # Per call, so live mode's deadline does not require a second client for the
         # same provider — and therefore a second Pacer, which would let two agents send
         # at twice the rate the key allows.
-        request = self.build_request(prompt)
+        request = dict(request)
         if timeout_s is not None:
             request["timeout"] = timeout_s
 

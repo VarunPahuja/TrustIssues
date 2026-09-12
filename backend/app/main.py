@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from shared.constants import SCHEMA_VERSION
 
-from app.api.v1 import agents, audit, decisions, health, recommendations, simulation
+from app.api.v1 import agents, assistant, audit, decisions, health, recommendations, simulation
 from app.errors import register_exception_handlers
 
 app = FastAPI(
@@ -40,5 +40,13 @@ app.add_middleware(
 
 register_exception_handlers(app)
 
-for router in (agents.router, decisions.router, recommendations.router, audit.router, simulation.router, health.router):
+for router in (
+    agents.router,
+    decisions.router,
+    recommendations.router,
+    audit.router,
+    simulation.router,
+    assistant.router,
+    health.router,
+):
     app.include_router(router, prefix="/api/v1")

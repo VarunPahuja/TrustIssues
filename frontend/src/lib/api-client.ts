@@ -26,6 +26,8 @@ import type {
   AuditLogResponse,
   SimulationRunCreate,
   SimulationRunOut,
+  AssistantChatRequest,
+  AssistantChatResponse,
 } from "@/types/api";
 
 const API_BASE =
@@ -225,6 +227,17 @@ export const auditSamplesApi = {
 // Simulation
 // No GET /simulation/runs (list-all) endpoint exists.
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Assistant — read-only chat, general or agent-scoped
+// No tools, no mutations — see docs on POST /api/v1/assistant/chat.
+// ---------------------------------------------------------------------------
+
+export const assistantApi = {
+  /** POST /assistant/chat → AssistantChatResponse */
+  chat: (body: AssistantChatRequest): Promise<AssistantChatResponse> =>
+    post("/assistant/chat", body),
+};
 
 export const simulationApi = {
   /**
