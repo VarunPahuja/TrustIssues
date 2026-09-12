@@ -196,8 +196,10 @@ detail behind every beat, not just this summary.
    escalations alongside the plain decision stream for this evidence gap
    to close in real time — easy to forget mid-demo, worth rehearsing.
 5. Inject a critical error (an APPROVE that should have been a REJECT) and
-   show the automatic clawback to the floor, with no human step required.
-   **Real, as of 2026-09-08.** `generate_recommendation`
+   show the automatic clawback to the floor, with no human step required —
+   "automatic" now covers both halves of that claim: no human *approves* it,
+   and nothing manual has to *trigger* the evaluation that finds it either.
+   **The approval half: real as of 2026-09-08.** `generate_recommendation`
    (`backend/app/services/governance.py`) applies a `CLAWBACK` recommendation
    immediately, in the same transaction it's generated in —
    `apply_policy_version` runs with `created_by="system"`, status is
@@ -205,9 +207,28 @@ detail behind every beat, not just this summary.
    decided_by` is a foreign-key-to-`users.id` human-approval table by
    construction, so it deliberately doesn't get one — see ADR-0004's
    Consequences for the full reasoning). `POST /recommendations/{id}/approve`
-   is never called. Live-verified: injecting a real critical error and
-   calling `POST /agents/{id}/recommendations` drops the agent's rung with
-   no further API call.
+   is never called for one.
+   **The trigger half: real as of vp/clawback-trigger, and precisely scoped —
+   read this before promising more than it does.** Before that branch,
+   nothing in the decision-ingest path ever evaluated an agent; a clawback
+   only happened if a human opened the dashboard or something called
+   `POST /agents/{id}/recommendations` directly, so a degrading agent kept
+   its ceiling indefinitely otherwise (confirmed live: 400 degrading
+   decisions left `GET /agents/{id}/trust` reporting `direction: CLAWBACK`
+   while `current_limit` sat unchanged). `execute_simulation_run`
+   (`backend/app/services/simulation.py`) now evaluates the agent once,
+   after the run's last decision commits and before the run is marked
+   completed, and applies a clawback via `generate_recommendation` if the
+   evidence says so. **This prototype's trigger is "at the end of a
+   simulation run" — deliberately not "on every decision ingest"** (a full
+   trust evaluation per write is both slow and wasteful at a couple hundred
+   decisions a run) **and deliberately not a real production trigger.** A
+   production deployment would evaluate on a schedule or from the ingest
+   path itself, with its own rate limiting; this is a demo/prototype
+   boundary, stated as a limitation rather than left to be discovered.
+   Live-verified: starting a degrading simulation run through
+   `POST /simulation/runs` and polling it drops the agent's rung with no
+   other call of any kind — not even `POST /agents/{id}/recommendations`.
 6. Inject a subtler, sustained accuracy drop (not a single critical error) and
    show drift detection catch it — first as a WARNING tripwire, then
    CONFIRMED once the two-proportion z-test has enough samples to back it.

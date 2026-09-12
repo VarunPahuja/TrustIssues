@@ -37,6 +37,8 @@ def _run_out(run: SimulationRun) -> SimulationRunOut:
         accuracy=run.accuracy,
         wilson_lower_bound=run.wilson_lower_bound,
         error_message=run.error_message,
+        clawback_applied=run.clawback_applied,
+        clawback_limit=run.clawback_limit,
     )
 
 

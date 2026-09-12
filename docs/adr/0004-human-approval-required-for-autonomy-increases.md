@@ -44,6 +44,50 @@ apply immediately" path anywhere for an *increase*.
   decision, not an instruction the Policy Engine executes unattended. A
   clawback recommendation (`Direction.CLAWBACK`) is the opposite: never
   inert, always applied.
+- **"No human step required" is a claim about *approval*, and until
+  vp/clawback-trigger it was silently misleading about *triggering*.**
+  Applying a clawback with no human click still needed something to call
+  `generate_recommendation` in the first place, and nothing in the
+  decision-ingest path did — see "What actually triggers the evaluation"
+  below for the gap and the fix. The title and the rest of this ADR were
+  true about approval and read as an overclaim about the whole pipeline
+  being human-free; that gap belonged in code, not left for a reader to
+  notice.
+
+### What actually triggers the evaluation (2026-09-13)
+
+This ADR always described what happens *once* `generate_recommendation` runs
+— nothing here ever said what causes it to run. Before vp/clawback-trigger,
+the honest answer was "a human opens the dashboard, or something calls
+`POST /agents/{id}/recommendations` directly" — meaning a degrading agent
+kept its ceiling indefinitely if neither happened. Confirmed live: 400
+degrading decisions left `GET /agents/{id}/trust` reporting
+`direction: CLAWBACK` with `drift.severity: CRITICAL`, while
+`current_limit` had not moved.
+
+`backend/app/services/simulation.py:execute_simulation_run` now evaluates the
+agent once, after the run's last decision commits and before the run is
+marked completed (`_evaluate_and_maybe_clawback`), reusing
+`generate_recommendation` — the same function, the same cascade guard (PR
+#40: do not re-apply a clawback for evidence already acted on), no second
+clawback path. INCREASE/HOLD directions are deliberately never generated
+from this trigger point at all (checked via a cheap, non-persisting peek at
+`trust_engine`'s own direction before calling `generate_recommendation`):
+an increase still needs a human either way, so auto-creating a PENDING
+recommendation at the end of every ordinary run would only fill the
+Approvals queue with rows nobody is waiting on, for a batch boundary that
+means nothing to a real reviewer.
+
+**Be precise about what this is and is not.** The trigger is "at the end of
+a simulation run" — a prototype's natural batch boundary, not a production
+mechanism. It is deliberately not "on every decision ingest": a full trust
+evaluation is `load_decision_records` plus `trust_engine.evaluate` over an
+agent's entire history, and running that on every single write is both slow
+and wasteful at the couple hundred decisions a run submits. A real
+deployment would evaluate on a schedule, or from the ingest path itself with
+its own rate limiting — either is a reasonable choice this prototype simply
+hasn't had to make, because it has no ingest traffic outside of simulation
+runs. Stated here as a scoped limitation, not implied as more than it is.
 
 ### How this is enforced in code (2026-09-08)
 

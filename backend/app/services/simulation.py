@@ -4,6 +4,21 @@ them, and submit every resulting decision through the real ingest path
 database) — recording progress and a final summary (or a recorded failure)
 on the `simulation_runs` row as it goes.
 
+Also where a clawback actually gets triggered end to end. Before this branch,
+nothing in the decision-ingest path ever evaluated an agent — a clawback only
+happened if a human opened the dashboard or something called
+`POST /agents/{id}/recommendations` directly, so a degrading agent kept its
+ceiling indefinitely otherwise (confirmed live: 400 degrading decisions left
+`GET /agents/{id}/trust` reporting `direction=CLAWBACK` while
+`current_limit` sat unchanged). `execute_simulation_run` now evaluates the
+agent once, at the end of the run, and applies a clawback if the evidence
+says so — see `_evaluate_and_maybe_clawback`'s docstring for the full
+reasoning, including why this happens once per run and not once per decision.
+
+This is also, deliberately, the only place a real deployment's own trigger
+(a schedule, or ingest itself with proper rate limiting) is not yet built —
+see that same docstring's note on the tradeoff this prototype made instead.
+
 Why this does not import `simulator/`
 --------------------------------------
 `app/schemas/simulation.py` already establishes the rule for this exact pair
@@ -37,9 +52,10 @@ from __future__ import annotations
 
 import random
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from shared.enums import Action
+from shared.enums import Action, Direction
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 from trust_engine.stats.wilson import wilson_lower_bound
@@ -141,6 +157,104 @@ def generate_decision_plan(
     return plan
 
 
+@dataclass(frozen=True, slots=True)
+class ClawbackOutcome:
+    """What `_evaluate_and_maybe_clawback` found and did, for the run row to record."""
+
+    applied: bool
+    limit: int | None
+
+
+def _evaluate_and_maybe_clawback(engine: Engine, agent_id: str) -> ClawbackOutcome:
+    """Evaluate `agent_id` against its real, just-updated decision history and
+    apply a clawback if the evidence says so — the fix for the gap this branch
+    exists to close: nothing in the decision-ingest path triggered a clawback,
+    so a degrading agent kept its ceiling until a human opened the dashboard or
+    something called `POST /agents/{id}/recommendations` by hand.
+
+    **Reuses `app.services.governance.generate_recommendation` — the only
+    place a clawback is ever applied, and the only place the cascade guard
+    (do not re-apply a clawback for evidence already acted on) lives.** This
+    function does not decide whether to claw back or re-implement any part of
+    that decision; it only decides *whether the panel is worth convening at
+    all*, via a cheap, side-effect-free peek at the direction
+    (`app.services.trust.compute_trust_evaluation`, the same function
+    `compute_and_persist_trust_evaluation` itself calls — nothing new). Two
+    separate sessions, deliberately: the peek must never persist anything
+    (`compute_trust_evaluation` doesn't, but using a session we control and
+    close either way makes that an invariant of this function, not an
+    assumption about what it's called with), and the real attempt gets its own
+    session so a failure inside it (see below) rolls back cleanly without
+    touching whatever `execute_simulation_run` does with the run row
+    afterwards.
+
+    **Why HOLD and INCREASE never reach `generate_recommendation` here.** For
+    a CLAWBACK, `generate_recommendation` both evaluates *and* applies in one
+    call — that's the function's job. But for HOLD/INCREASE it *also*
+    persists a new PENDING `Recommendation` row, and an increase still needs a
+    human either way (ADR-0004) — auto-generating one at the end of every
+    ordinary simulation run would fill the Approvals queue with a row for
+    every run, actionable or not, for no benefit: nobody is waiting on an
+    end-of-run INCREASE the way they would be on a real emerging trend caught
+    by a scheduled evaluation. A production deployment evaluating on a
+    schedule (or on ingest) might reasonably decide that differently; a
+    demo/prototype whose only trigger point is "a batch of decisions just
+    finished" should not turn every finished batch into approvals-queue noise.
+    Skipping the call entirely when the peek says HOLD/INCREASE is what keeps
+    that noise out without adding a second place that knows what a
+    recommendation is for.
+
+    Returns `ClawbackOutcome(applied=False, limit=None)` for HOLD/INCREASE,
+    for a no-op clawback (already at the floor, or the cascade guard caught a
+    repeat), and for a governance-layer failure while attempting one (the
+    decisions this run already submitted are real and already committed;
+    a governance hiccup at the very last step must not make the caller think
+    the whole run failed). `applied=True` only when the agent's own
+    `current_limit` demonstrably moved as a result of this call — not merely
+    "governance's response claimed CLAWBACK," which is also and identically
+    true of the cascade guard's own no-op replay of a past recommendation.
+    """
+    from app.errors import ApiError  # deferred: see module docstring's read order
+    from app.services.governance import generate_recommendation
+    from app.services.trust import compute_trust_evaluation
+
+    peek_session = Session(engine)
+    try:
+        agent = peek_session.get(Agent, agent_id)
+        peek_evaluation = compute_trust_evaluation(peek_session, agent)
+    finally:
+        peek_session.close()
+
+    if peek_evaluation.direction is not Direction.CLAWBACK:
+        return ClawbackOutcome(applied=False, limit=None)
+
+    session = Session(engine)
+    try:
+        agent = session.get(Agent, agent_id)
+        limit_before = agent.current_limit
+        try:
+            recommendation = generate_recommendation(session, agent)
+            session.commit()
+        except ApiError:
+            # Governance unavailable at the last step of an otherwise-successful
+            # run. The decisions already submitted are real and already
+            # committed in their own transactions; losing the clawback attempt
+            # must not turn a completed run into a failed one.
+            session.rollback()
+            return ClawbackOutcome(applied=False, limit=None)
+    finally:
+        session.close()
+
+    if recommendation.proposed_limit == limit_before:
+        # Either the cascade guard returned the same recommendation it did
+        # last time (no new policy version written), or the agent was already
+        # at AUTONOMY_FLOOR and stayed there (governance.py's own floor no-op —
+        # PR #34). Either way, nothing about this agent's actual authority
+        # changed because of this call.
+        return ClawbackOutcome(applied=False, limit=None)
+    return ClawbackOutcome(applied=True, limit=recommendation.proposed_limit)
+
+
 def execute_simulation_run(run_id: str, engine: Engine) -> None:
     """The `BackgroundTasks` entry point. Runs after the `POST` response has
     already been sent, on its own thread (Starlette runs a synchronous
@@ -240,6 +354,41 @@ def execute_simulation_run(run_id: str, engine: Engine) -> None:
 
     accuracy = (correct / submitted) if submitted else None
     wilson = wilson_lower_bound(correct, submitted) if submitted else None
+
+    # Right here: after the last decision this run will ever submit is
+    # committed, before the run's own status is written as terminal — see
+    # `_evaluate_and_maybe_clawback`'s docstring for what this does and does
+    # not do. Guarded on `submitted > 0`: a run that submitted nothing (failed
+    # on its very first decision) added no new evidence, so there is nothing
+    # to re-evaluate.
+    #
+    # Deliberately NOT called from decision-ingest (`app/api/v1/decisions.py`)
+    # on every single decision instead of once per run. That would mean a
+    # full trust evaluation — `load_decision_records` plus `trust_engine.
+    # evaluate` over the agent's entire history — on every write, and a
+    # simulation run is exactly the workload that makes that cost visible:
+    # 200 decisions would mean 200 evaluations of a history that long or
+    # longer, for a result that only needs checking once the batch is done.
+    # If a future caller is tempted to move this into ingest for faster
+    # reaction time, the honest fix is a scheduled or ingest-triggered
+    # evaluation with its own rate limiting, not deleting this comment.
+    clawback = ClawbackOutcome(applied=False, limit=None)
+    clawback_error: str | None = None
+    if submitted > 0:
+        try:
+            clawback = _evaluate_and_maybe_clawback(engine, agent_id)
+        except Exception as exc:  # noqa: BLE001 — recorded, never left to strand the run
+            # Deliberately does not set `failure`: the decisions this run
+            # submitted are real and already committed, so an unexpected bug
+            # in the clawback step (distinct from the known, already-handled
+            # governance-unavailable case inside `_evaluate_and_maybe_clawback`)
+            # must not turn an otherwise-successful run into a FAILED one —
+            # the same reasoning that function's own docstring gives for its
+            # ApiError branch, extended to a failure mode it didn't anticipate.
+            # Visible instead in this run's own audit entry below, so it is
+            # noticed rather than silently absorbed.
+            clawback_error = f"{type(exc).__name__}: {exc}"
+
     completed_at = datetime.now(UTC)
 
     final_session = Session(engine)
@@ -249,6 +398,8 @@ def execute_simulation_run(run_id: str, engine: Engine) -> None:
         final_row.completed_at = completed_at
         final_row.accuracy = accuracy
         final_row.wilson_lower_bound = wilson
+        final_row.clawback_applied = clawback.applied
+        final_row.clawback_limit = clawback.limit
         if failure is not None:
             final_row.status = RunStatus.FAILED
             final_row.error_message = failure
@@ -268,9 +419,12 @@ def execute_simulation_run(run_id: str, engine: Engine) -> None:
                 "seed": seed,
                 "requested_count": invoice_count,
                 "decisions_submitted": submitted,
+                "clawback_applied": clawback.applied,
+                "clawback_limit": clawback.limit,
                 "accuracy": accuracy,
                 "wilson_lower_bound": wilson,
                 "error": failure,
+                "clawback_evaluation_error": clawback_error,
             },
         )
         final_session.commit()
