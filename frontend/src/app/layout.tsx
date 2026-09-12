@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { Open_Sans, Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/ui/Providers";
-import { Sidebar } from "@/components/ui/Sidebar";
-import { AssistantPanel } from "@/components/domain/AssistantPanel";
 
 /**
  * Open Sans — primary font for the dashboard.
@@ -43,15 +41,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${openSans.variable} ${inter.variable}`}>
       <body className="bg-[#F7F8F6] text-slate-900 antialiased">
-        <Providers>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto bg-[#F7F8F6]">
-              {children}
-            </main>
-          </div>
-          <AssistantPanel />
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
