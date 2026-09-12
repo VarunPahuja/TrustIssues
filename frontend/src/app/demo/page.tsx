@@ -14,7 +14,7 @@
 
 import { useState } from "react";
 import { AutonomyLadder } from "@/components/domain/AutonomyLadder";
-import { OpinionCard } from "@/app/approvals/page";
+import { OpinionCard } from "@/app/(dashboard)/approvals/page";
 import { IconDemo } from "@/components/ui/Icons";
 import {
   runBeat1,
