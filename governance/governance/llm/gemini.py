@@ -198,6 +198,17 @@ class GeminiClient:
             },
         }
 
+    def build_payload_text(self, prompt: Prompt) -> dict:
+        """Same request as `build_payload`, minus the structured-output constraint.
+
+        For a caller that wants prose, not an `AgentOpinion` — see `generate_text`.
+        """
+        return {
+            "systemInstruction": {"parts": [{"text": prompt.system}]},
+            "contents": [{"role": "user", "parts": [{"text": prompt.user}]}],
+            "generationConfig": {"temperature": self.config.temperature},
+        }
+
     def generate(
         self,
         prompt: Prompt,
@@ -205,7 +216,8 @@ class GeminiClient:
         client: httpx.Client | None = None,
         timeout_s: float | None = None,
     ) -> str:
-        """Send one prompt, return the model's raw text.
+        """Send one prompt, return the model's raw text, constrained to the
+        `AgentOpinion` schema (see `build_payload`).
 
         Paces itself first, so callers cannot accidentally burst. Raises a
         `GovernanceLLMError` subclass on every failure path; the caller decides what to
@@ -213,6 +225,31 @@ class GeminiClient:
 
         `client` is injectable so tests can pass a transport rather than monkey-patching
         a module global.
+        """
+        return self._send(self.build_payload(prompt), client=client, timeout_s=timeout_s)
+
+    def generate_text(
+        self,
+        prompt: Prompt,
+        *,
+        client: httpx.Client | None = None,
+        timeout_s: float | None = None,
+    ) -> str:
+        """Same call as `generate`, but the response is unconstrained prose —
+        for a caller that isn't asking for an `AgentOpinion` (see `base.LLMClient`).
+        """
+        return self._send(self.build_payload_text(prompt), client=client, timeout_s=timeout_s)
+
+    def _send(
+        self,
+        payload: dict,
+        *,
+        client: httpx.Client | None = None,
+        timeout_s: float | None = None,
+    ) -> str:
+        """The HTTP call both `generate` and `generate_text` make — pacing, the
+        request itself, and error translation, shared so the two differ only in
+        the payload they send.
         """
         if not self.config.has_key:
             raise LLMAuthError(
@@ -222,7 +259,6 @@ class GeminiClient:
             )
 
         self._pacer.wait()
-        payload = self.build_payload(prompt)
         headers = {
             "x-goog-api-key": self.config.api_key,
             "content-type": "application/json",

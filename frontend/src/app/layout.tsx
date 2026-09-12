@@ -3,6 +3,7 @@ import { Open_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/ui/Providers";
 import { Sidebar } from "@/components/ui/Sidebar";
+import { AssistantPanel } from "@/components/domain/AssistantPanel";
 
 /**
  * Open Sans — loaded via Next.js font optimization.
@@ -37,6 +38,7 @@ export default function RootLayout({
             <Sidebar />
             <main className="flex-1 overflow-y-auto bg-[#F7F8F6]">{children}</main>
           </div>
+          <AssistantPanel />
         </Providers>
       </body>
     </html>

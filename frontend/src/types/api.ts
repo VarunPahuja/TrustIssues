@@ -353,6 +353,32 @@ export interface AuditLogEntry {
   hash: string;
 }
 
+// --- Assistant: read-only chat over POST /assistant/chat ---
+
+export type AssistantRole = "user" | "assistant";
+
+export interface AssistantMessage {
+  role: AssistantRole;
+  content: string;
+}
+
+/** `agent_id` omitted (or null) is the general scope; present, the agent-scoped one. */
+export interface AssistantChatRequest {
+  messages: AssistantMessage[];
+  agent_id?: string | null;
+}
+
+/** One documentation citation — a doc name and the heading within it. */
+export interface AssistantSource {
+  doc: string;
+  section: string;
+}
+
+export interface AssistantChatResponse {
+  reply: string;
+  sources: AssistantSource[];
+}
+
 // --- Simulation ---
 
 export interface SimulationRunCreate {

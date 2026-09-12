@@ -6,7 +6,12 @@
  */
 
 import { http, HttpResponse } from "msw";
-import type { DecisionCreate, DecisionRecordOut, DecisionRuling } from "@/types/api";
+import type {
+  AssistantChatRequest,
+  DecisionCreate,
+  DecisionRecordOut,
+  DecisionRuling,
+} from "@/types/api";
 import {
   MOCK_AGENTS,
   MOCK_POLICY_VERSIONS,
@@ -278,6 +283,41 @@ export const handlers = [
       decisions_submitted: 100,
       accuracy: 0.94,
       wilson_lower_bound: 0.88,
+    });
+  }),
+
+  // ── Assistant (read-only, mocked reply — no LLM in MSW) ─────────────────
+  http.post(`${API}/assistant/chat`, async ({ request }) => {
+    const body = (await request.json()) as AssistantChatRequest;
+    const question = body.messages[body.messages.length - 1]?.content ?? "";
+
+    if (body.agent_id) {
+      const agent = MOCK_AGENTS.find(a => a.id === body.agent_id);
+      if (!agent) {
+        return HttpResponse.json(
+          { code: "agent_not_found", message: "Agent not found", detail: null },
+          { status: 404 }
+        );
+      }
+      return HttpResponse.json({
+        reply:
+          `[mock] Scoped to ${agent.id} (${agent.name}) only. Current limit ` +
+          `₹${agent.current_limit.toLocaleString("en-IN")} at rung ${agent.current_rung}, ` +
+          `state ${agent.state}. Question received: "${question}" — this is a mocked ` +
+          `reply for frontend development; no other agent's data was fetched.`,
+        sources: [{ doc: "ADR-0004", section: "How this is enforced in code (2026-09-08)" }],
+      });
+    }
+
+    return HttpResponse.json({
+      reply:
+        `[mock] This is a mocked assistant reply for frontend development. Question ` +
+        `received: "${question}". The real endpoint cites documentation and, in an ` +
+        `agent-scoped conversation, that one agent's evidence.`,
+      sources: [
+        { doc: "System Explained", section: "2. The one sentence that decides every disagreement" },
+        { doc: "ADR-0002", section: "ADR-0002: Wilson score interval over the Wald (normal-approximation) interval" },
+      ],
     });
   }),
 

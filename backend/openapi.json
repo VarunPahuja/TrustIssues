@@ -129,6 +129,98 @@
         "title": "AgentState",
         "type": "string"
       },
+      "AssistantChatRequest": {
+        "description": "`agent_id` absent (or `null`) is the general scope; present, it is the\nagent-scoped conversation \u2014 see `app/api/v1/assistant.py` for what each\nscope fetches.",
+        "properties": {
+          "agent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Id"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/AssistantMessage"
+            },
+            "minItems": 1,
+            "title": "Messages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "messages"
+        ],
+        "title": "AssistantChatRequest",
+        "type": "object"
+      },
+      "AssistantChatResponse": {
+        "properties": {
+          "reply": {
+            "title": "Reply",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/AssistantSource"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "reply",
+          "sources"
+        ],
+        "title": "AssistantChatResponse",
+        "type": "object"
+      },
+      "AssistantMessage": {
+        "properties": {
+          "content": {
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "AssistantMessage",
+        "type": "object"
+      },
+      "AssistantSource": {
+        "description": "One documentation citation: a doc name (e.g. `\"ADR-0006\"`) and the\nheading within it the excerpt came from. Mirrors `app.services.doc_index.\nDocChunk`'s two identifying fields \u2014 see that module for why this is a\nstub search today, swapped for `vc/assistant-retrieval`'s real index later.",
+        "properties": {
+          "doc": {
+            "title": "Doc",
+            "type": "string"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc",
+          "section"
+        ],
+        "title": "AssistantSource",
+        "type": "object"
+      },
       "AuditLogEntryOut": {
         "description": "One hash-chained row. `prev_hash`/`hash` make tampering with history\ndetectable \u2014 see docs/lanes/vp.md: \"sha256(prev_hash +\ncanonical_json(payload))\". Read-only; nothing in this API ever mutates\nan existing row.",
         "properties": {
@@ -2087,6 +2179,86 @@
         "summary": "List Trust History",
         "tags": [
           "agents"
+        ]
+      }
+    },
+    "/api/v1/assistant/chat": {
+      "post": {
+        "description": "Answer one question, in the requested scope. `agent_id` absent is the\ngeneral scope; present, it must name a real agent (404 otherwise) and the\nreply is built from that agent's evidence alone (`app/services/assistant.py`).\n\nNo role restriction \u2014 this is a read endpoint over data every stub role can\nalready see elsewhere (agents, decisions, recommendations, audit log), the\nsame reasoning `GET /agents/{id}` itself carries no `require_role`.",
+        "operationId": "chat_api_v1_assistant_chat_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-User-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Role"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssistantChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantChatResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "No resource with that id."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "A downstream dependency (e.g. governance) could not serve this request."
+          }
+        },
+        "summary": "Chat",
+        "tags": [
+          "assistant"
         ]
       }
     },

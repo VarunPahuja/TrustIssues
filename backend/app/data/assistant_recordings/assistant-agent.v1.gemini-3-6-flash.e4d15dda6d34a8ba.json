@@ -1,0 +1,12 @@
+{
+  "agent_name": "assistant-agent",
+  "cache_key": "assistant-agent.v1.gemini-3-6-flash.e4d15dda6d34a8ba",
+  "evidence_hash": "e4d15dda6d34a8ba",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "86f8d98d6c7b638e",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-12T06:07:43+00:00",
+  "response_text": "agent-02 isn't eligible, and it comes down to almost no evidence yet rather than anything having gone wrong: only 2 decisions are on record, and just 1 of those was acted on (the other was escalated and later ruled on by a human). That single acted decision was correct, so the point accuracy reads 100% \u2014 but with n=1 the Wilson lower bound collapses to 0.207, nowhere near enough to support raising a limit (see ADR-0002: a small perfect record is weak evidence, not strong). Human agreement is the same story \u2014 1/1 ruled escalation, Wilson lower bound 0.207. The reason codes spell it out directly: INSUFFICIENT_SAMPLE, AGREEMENT_EVIDENCE_INSUFFICIENT, TRUST_BELOW_THRESHOLD, and WEIGHTS_RENORMALISED because the score had to be computed over whatever evidence does exist. There's no drift and no critical error working against it \u2014 it's on probation and simply needs many more decided invoices before the ladder has enough to evaluate.",
+  "schema_version": "1"
+}

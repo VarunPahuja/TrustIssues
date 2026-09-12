@@ -1,0 +1,12 @@
+{
+  "agent_name": "assistant-agent",
+  "cache_key": "assistant-agent.v1.gemini-3-6-flash.2cad3cacb7475003",
+  "evidence_hash": "2cad3cacb7475003",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "92bbecafea80b4b5",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-12T06:07:43+00:00",
+  "response_text": "Right now the evidence doesn't support it: direction reads HOLD, not INCREASE, and eligible_for_increase is False. Only 3 decisions are on record for agent-01, 2 of them acted on; both were correct, but with n=2 the Wilson lower bound on accuracy is only 0.342 \u2014 far short of what the ladder needs, hence INSUFFICIENT_SAMPLE and TRUST_BELOW_THRESHOLD. There is, however, an existing PENDING recommendation on file from 2026-08-27 proposing INCREASE to \u20b95,000 (rung 3), generated from an earlier, richer evaluation \u2014 150 acted decisions, Wilson lower bound 0.887, all four governance agents concurring. That recommendation hasn't been approved or rejected yet, so it's sitting on the Recommendations tab awaiting an admin's decision. But to be direct about it: the trust evaluation on record right now would not, on its own, produce that same INCREASE if it were computed fresh today, given how thin the currently recorded decision history is. Whichever way that pending recommendation is resolved, reaching the next rung after that would need a much larger decided sample for the ladder to re-evaluate against.",
+  "schema_version": "1"
+}

@@ -1,0 +1,12 @@
+{
+  "agent_name": "assistant-agent",
+  "cache_key": "assistant-agent.v1.gemini-3-6-flash.e6e0757ce0bac777",
+  "evidence_hash": "e6e0757ce0bac777",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "62df4e770d81d051",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-12T06:07:43+00:00",
+  "response_text": "The most recent clawback actually applied to agent-03 was on 2026-08-25, recorded in the policy version history as \"Automatic clawback: confirmed drift (CLAWBACK_DRIFT). No human approval required for a reduction (ADR-0004)\" \u2014 dropping it from rung 2 (\u20b92,500) to rung 1 (\u20b91,000). The trust evaluation behind that clawback found recent accuracy at 0.80 against a 0.94 baseline, confirmed by the two-stage drift check (ADR-0006) with z=3.21, p=0.0013. The governance panel's opinions on that evidence: risk, performance, and audit concurred with reducing the limit; compliance objected \u2014 not to the reduction itself, but flagging that three critical errors in the recent window was itself grounds for a manual audit-sample review. agent-03 is currently RESTRICTED \u2014 and worth flagging directly: the trust evaluation on record right now actually points toward *another* clawback. It found a critical error (an approval where ground truth was reject) among its currently recorded decisions, and reads direction CLAWBACK with a recommended limit of \u20b9500 (CLAWBACK_CRITICAL_ERROR). That has not been applied \u2014 applying it requires a fresh recommendation to be generated first (the Generate Recommendation action on this page) \u2014 so \u20b91,000 (rung 1) is still the limit actually in force as of now. I can tell you what was decided and whether it matched ground truth for its recent invoices, but not why any one invoice was approved \u2014 that reasoning isn't recorded for a rule-based agent.",
+  "schema_version": "1"
+}

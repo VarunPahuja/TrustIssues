@@ -1,0 +1,12 @@
+{
+  "agent_name": "assistant-general",
+  "cache_key": "assistant-general.v1.gemini-3-6-flash.eb81e6508d920cca",
+  "evidence_hash": "eb81e6508d920cca",
+  "model": "gemini-3.6-flash",
+  "prompt_sha": "112cffa23e24351e",
+  "prompt_version": "v1",
+  "provider": "gemini",
+  "recorded_at": "2026-09-12T06:07:43+00:00",
+  "response_text": "Because raw accuracy can't tell a lucky streak from real evidence. Two agents at \"100% accurate\" and \"96% accurate\" sound like the first is better \u2014 but if the first is 5/5 and the second is 384/400, the Wilson lower bound (ADR-0002) puts the first at roughly 57% and the second at roughly 94%, and the ladder correctly reads the second as the stronger case. A point estimate treats both records as equally certain; the Wilson lower bound is the same proportion adjusted for how much evidence actually backs it, so a small perfect run can't outrank a large, slightly-imperfect one. Everywhere this system decides something automatically \u2014 increase eligibility, drift confirmation \u2014 it reads the lower bound, never the raw point accuracy, for exactly this reason (System Explained, \u00a73 Glossary; ADR-0002).",
+  "schema_version": "1"
+}
