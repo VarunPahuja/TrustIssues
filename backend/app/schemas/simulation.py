@@ -70,3 +70,12 @@ class SimulationRunOut(BaseModel):
     # Populated only when status is FAILED — the "record the failure on the
     # run" half of this endpoint's brief. None on every other status.
     error_message: str | None = None
+    # Set once, at the end of the run, by
+    # `app.services.simulation._evaluate_and_maybe_clawback` — whether this
+    # run's own evidence caused a clawback, and to what limit. False/None on
+    # a run that didn't warrant one, that hit the cascade guard, or that was
+    # already at the floor: "the direction was CLAWBACK" and "this run's
+    # evidence actually changed the agent's limit" are different questions,
+    # and these two fields answer the second one.
+    clawback_applied: bool = False
+    clawback_limit: int | None = None

@@ -109,11 +109,30 @@ def test_same_seed_produces_identical_decision_sequences(client, admin_headers, 
     `(agent_id, phase, seed)` deliberately (see its docstring) precisely so
     that two *different* agents given the same numeric seed do NOT collide —
     determinism is a property of repeating the exact same run, not of the
-    bare seed value alone."""
-    resp_a = _start_run(client, admin_headers, agent_id="agent-01", phase="degraded", seed=99, invoice_count=15)
+    bare seed value alone.
+
+    seed=99 used to work here, but since vp/clawback-trigger it happens to
+    put a critical error in run A's last `CRITICAL_ERROR_WINDOW` decisions —
+    run A then claws back agent-01 (correctly; see
+    test_simulation_clawback.py), which changes `agent.current_limit`
+    *before* run B's own plan is generated. `generate_decision_plan` takes
+    `current_limit` as an explicit argument specifically because it sets the
+    invoice-amount range (see its own docstring) — a different limit is a
+    different amount range, which perturbs every draw after it from the same
+    seeded `random.Random` stream, and run B stops matching run A. That is
+    not a determinism bug in `generate_decision_plan` itself (each run is
+    still exactly reproducible given its own inputs) — it is this test's
+    premise ("two back-to-back same-seed runs see the same current_limit")
+    no longer holding for every seed, now that a run can change the very
+    limit the next one's plan depends on. seed=1 has no critical error
+    anywhere in a 15-decision degraded plan for agent-01 (checked directly
+    against `generate_decision_plan`), so neither run claws back and the
+    premise holds again.
+    """
+    resp_a = _start_run(client, admin_headers, agent_id="agent-01", phase="degraded", seed=1, invoice_count=15)
     run_a = _poll_until_done(client, admin_headers, resp_a.json()["run_id"])
 
-    resp_b = _start_run(client, admin_headers, agent_id="agent-01", phase="degraded", seed=99, invoice_count=15)
+    resp_b = _start_run(client, admin_headers, agent_id="agent-01", phase="degraded", seed=1, invoice_count=15)
     run_b = _poll_until_done(client, admin_headers, resp_b.json()["run_id"])
 
     assert run_a["decisions_submitted"] == run_b["decisions_submitted"] == 15

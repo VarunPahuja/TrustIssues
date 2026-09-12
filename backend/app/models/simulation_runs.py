@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -39,3 +39,13 @@ class SimulationRun(Base):
     # Populated only on a failed run — "record the failure on the run rather
     # than silently continuing with a short count" (this branch's own brief).
     error_message: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Set by `app.services.simulation._evaluate_and_maybe_clawback`, at the end
+    # of the run, after the last decision commits. `clawback_applied` is False
+    # for every run that didn't warrant one, that hit the cascade guard (no
+    # new evidence since the last clawback), or that was already at
+    # AUTONOMY_FLOOR — "the direction said CLAWBACK" and "this run's evidence
+    # actually moved the agent's limit" are different questions, and this
+    # column answers the second one. `clawback_limit` is the resulting limit,
+    # populated only when `clawback_applied` is True.
+    clawback_applied: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    clawback_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
